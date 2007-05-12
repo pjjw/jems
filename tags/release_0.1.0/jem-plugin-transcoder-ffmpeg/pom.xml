@@ -1,0 +1,19 @@
+<?xml version="1.0"?><project>
+  <parent>
+    <artifactId>jem</artifactId>
+    <groupId>net.kodeninja</groupId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>net.kodeninja</groupId>
+  <artifactId>jem-plugin-transcoder-ffmpeg</artifactId>
+  <name>JEM Plugin - FFmpeg Media Transcoder</name>
+  <version>0.1.0-SNAPSHOT</version>
+  <dependencies>
+    <dependency>
+      <groupId>net.kodeninja</groupId>
+      <artifactId>jem-server</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+</project>
