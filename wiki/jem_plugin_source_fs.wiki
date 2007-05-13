@@ -15,7 +15,7 @@ This plugin is set up in the modules section of the JemsConfig.xml file.
 <jems>
   <modules>
     ...
-    <module name="FS Media List" class="net.kodeninja.jem.server.content.fs.DirectoryMediaSource">
+    <module name="FS Media Plugin" class="net.kodeninja.jem.server.content.fs.DirectoryMediaSource">
       <refresh>180000</refresh>
       <directory>C:/shared/</directory>
       <directory>D:/shared/</directory>
@@ -33,12 +33,19 @@ This plugin is set up in the modules section of the JemsConfig.xml file.
     </module>
     ...
   </modules>
+  <services>
+  ...
+    <service module="FS Media Plugin"/>
+  ...
+  </services>
   ...
 </jems>
 }}}
 Figure 1.1 - _Sample module definition_
 
 The configuration for this module is split up in to 3 sections: Module Options, Directories, and Mimetype/Metadata Module mappings.
+
+*Note:* This plugin requires an entry in the services section.
 
 == Module Options ==
 There is currently only one option for the module:
@@ -62,4 +69,5 @@ The `extension` sub tags are used to specify which file extensions to use to mat
 ||Divx/Xvid/Mov/Mpeg (Video files)||video/_(dependent on the extension)_||`net.kodeninja.jem.server.content.mimetypes.GenericFile`||.mov, .avi, .divx, .mpg, .mpeg, .wmv, .flv, etc...||There are currently no modules yet for grabbing metadata from movies, so the filename is parsed instead.||
 
 It is suggested that even though a file may not have a parser yet, that an entry is created for it with the correct mimetype as some plug ins may only use that file if the file has an associated mime type.
+
 
