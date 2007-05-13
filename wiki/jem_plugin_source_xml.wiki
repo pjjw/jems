@@ -1,0 +1,27 @@
+#summary This page describes the XML Media Source plugin.
+#labels Phase-Deploy
+
+= Introduction =
+
+This plugin is used to maintain a persistent media list over runs of the server. Without this plugin, or one like it, the media list is lost and must be rescanned.
+
+= Configuration =
+
+This plugin is set up in the modules section of the JemsConfig.xml file.
+
+{{{
+<?xml version='1.0' encoding='utf-8'?> 
+<jems>
+  <modules>
+    ...
+    <module name="XML Media List" class="net.kodeninja.jem.server.content.xml.XMLMediaSource">
+      <path>medialist.xml</path>
+    </module>
+    ...
+  </modules>
+  ...
+</jems>
+}}}
+Figure 1.1 - _Sample module definition_
+
+The configuration for this module is simple and only contains one sub tag: `path`. This holds the path to the xml file that stores the media list.
