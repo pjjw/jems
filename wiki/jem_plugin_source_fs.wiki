@@ -4,7 +4,7 @@
 = Introduction =
 This plug in's main purpose is to scan local directories for media and add it to the the internal media list. In addition to adding media, if media that is found on the harddrive is missing/removed, it is automatically removed from the media list.
 
-*Note:* Any media found is only stored for that session and is lost when the server shuts down. For a persistent media list, please see the XML Media Source plugin.
+*Note:* Any media found is only stored for that session and is lost when the server shuts down. For a persistent media list, please see the XML Media Source plugin (see [jem_plugin_source_xml]).
 
 = Configuration =
 
@@ -57,8 +57,9 @@ The `class` attribute specifies which java module to load parse the file for met
 The `extension` sub tags are used to specify which file extensions to use to match a file to it's parent's metadata parser and mimetype. These tags can be specified multiple times, once for each extension to match on. For example, for matching 'jpg' and 'jpeg' as the same mimetype, would require 2 `extension` sub tags.
 
 ||*Media*||*Mimetype*||*Class*||*Extensions*||Notes||
-||Pictures||image/_(dependent on the extension)_||net.kodeninja.jem.server.content.mimetypes.ImageFile||.jpg, .jpeg, .gif, .bmp, etc...||This module uses the built in java image libraries for parsing the images. The formats supported are the same that java can open natively.||
-||MP3s (Music)||audio/mpeg||net.kodeninja.jem.server.content.mimetypes.MPEGAudioFile||.mp1, .mp2, mp3||||
-||Divx/Xvid/Mov/Mpeg (Video files)||video/_(dependent on the extension)_||net.kodeninja.jem.server.content.mimetypes.ImageFile||.mov, .avi, .divx, .mpg, .mpeg, .wmv, .flv, etc...||There are currently no modules yet for grabbing metadata from movies, so the filename is parsed instead.||
+||Pictures||image/_(dependent on the extension)_||`net.kodeninja.jem.server.content.mimetypes.ImageFile`||.jpg, .jpeg, .gif, .bmp, etc...||This module uses the built in java image libraries for parsing the images. The formats supported are the same that java can open natively.||
+||MP3s (Music)||audio/mpeg||`net.kodeninja.jem.server.content.mimetypes.MPEGAudioFile`||.mp1, .mp2, mp3||||
+||Divx/Xvid/Mov/Mpeg (Video files)||video/_(dependent on the extension)_||`net.kodeninja.jem.server.content.mimetypes.GenericFile`||.mov, .avi, .divx, .mpg, .mpeg, .wmv, .flv, etc...||There are currently no modules yet for grabbing metadata from movies, so the filename is parsed instead.||
 
 It is suggested that even though a file may not have a parser yet, that an entry is created for it with the correct mimetype as some plug ins may only use that file if the file has an associated mime type.
+
