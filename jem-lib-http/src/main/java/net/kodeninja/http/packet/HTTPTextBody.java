@@ -8,17 +8,22 @@ import net.kodeninja.io.StreamLineReader;
 import net.kodeninja.util.MimeType;
 
 public class HTTPTextBody implements HTTPBody {
+	public static MimeType HTTP_MIMETYPE = new MimeType("text", "html");
+	public static MimeType PLAIN_MIMETYPE = new MimeType("text", "plain");
 	protected String text;
 	protected MimeType mime;
 
 	public HTTPTextBody() {
+		this(PLAIN_MIMETYPE);
+	}
+	
+	public HTTPTextBody(MimeType mimeType) {
 		text = "";
-		mime = new MimeType("text", "plain");
+		mime = mimeType;
 	}
 
 	public HTTPTextBody(String Text) {
-		text = Text;
-		mime = new MimeType("text", "plain");
+		this(Text, PLAIN_MIMETYPE);
 	}
 
 	public HTTPTextBody(String Text, MimeType mimeType) {

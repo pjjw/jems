@@ -27,13 +27,13 @@ public abstract class MediaItemImpl implements MediaItem {
 		String title = getMetadata(MetadataTypes.Title);
 
 		if ((artist != null) && (title != null))
-			return "[A]" + artist + " - " + "[T]" + title;
+			return artist + " - " + title;
 		else if (artist != null)
-			return "[A]" + artist + " - " + "[P]" + getMediaURI().getPath();
+			return artist + " - " + getMediaURI().getPath();
 		else if (title != null)
-			return "[T]" + title;
+			return title;
 		else
-			return "[P]" + getMediaURI().getPath();
+			return getMediaURI().getPath();
 	}
 
 	public URI getMediaURI() {

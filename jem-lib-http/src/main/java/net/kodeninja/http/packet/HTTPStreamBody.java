@@ -8,9 +8,9 @@ import net.kodeninja.io.StreamWriter;
 import net.kodeninja.util.MimeType;
 
 public class HTTPStreamBody implements HTTPBody {
-	long contentLength;
-	MimeType m;
-	InputStream s;
+	protected long contentLength;
+	protected MimeType m;
+	protected InputStream s;
 
 	public HTTPStreamBody(InputStream in, MimeType mt) {
 		this(in, mt, -1);
