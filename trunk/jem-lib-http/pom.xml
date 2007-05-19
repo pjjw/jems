@@ -2,13 +2,13 @@
   <parent>
     <artifactId>jem</artifactId>
     <groupId>net.kodeninja</groupId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.kodeninja</groupId>
   <artifactId>jem-lib-http</artifactId>
   <name>JEM Library - HTTP</name>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.1-SNAPSHOT</version>
   <dependencies>
     <dependency>
       <groupId>net.kodeninja</groupId>
