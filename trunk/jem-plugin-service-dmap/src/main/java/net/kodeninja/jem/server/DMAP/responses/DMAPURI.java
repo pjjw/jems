@@ -23,14 +23,14 @@ public abstract class DMAPURI implements URIHandler {
 		path = p;
 	}
 
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet) {
+	public  HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet) {
 		if (Packet.getHeader().getLocation().getPath().equals(path) == false)
 			return null;
 
 		HTTPHeader header = new HTTPHeader(HTTPVersion.HTTP1_1,
 				HTTPResponseCode.HTTP_200_OK);
-		HTTPPacket<HTTPHeader, HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
+		HTTPPacket<HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
 				header, body, service);
 
 		return response;

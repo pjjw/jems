@@ -3,7 +3,7 @@ package net.kodeninja.jem.server.DMAP.responses;
 import net.kodeninja.DMAP.parameters.dmap.mupd;
 import net.kodeninja.DMAP.parameters.dmap.musr;
 import net.kodeninja.jem.server.DMAP.DMAPService;
-import net.kodeninja.jem.server.content.MediaUpdateHook;
+import net.kodeninja.jem.server.storage.MediaUpdateHook;
 
 public class UpdateURI extends DMAPURI implements MediaUpdateHook {
 	protected musr revisionTag = new musr();

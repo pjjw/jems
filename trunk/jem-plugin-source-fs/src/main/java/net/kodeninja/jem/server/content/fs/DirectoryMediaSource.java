@@ -4,22 +4,20 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
-import java.util.Iterator;
-import java.net.URI;
 
 import org.w3c.dom.Node;
 
 import net.kodeninja.jem.server.JemServer;
-import net.kodeninja.jem.server.content.MediaItem;
+import net.kodeninja.jem.server.storage.MediaItem;
 import net.kodeninja.jem.server.content.MediaSource;
 import net.kodeninja.jem.server.content.mimetypes.GenericFile;
 import net.kodeninja.jem.server.content.mimetypes.MetadataFactory;
 import net.kodeninja.scheduling.MinimumTimeJob;
 import net.kodeninja.util.KNRunnableModule;
-import net.kodeninja.util.KNXMLModuleInitException;
+import net.kodeninja.util.KNModuleInitException;
+import net.kodeninja.util.KNServiceModule;
 import net.kodeninja.util.MalformedMimeTypeException;
 import net.kodeninja.util.MimeType;
 
@@ -32,6 +30,8 @@ import net.kodeninja.util.MimeType;
  *   <module name="FS Plugin" class="net.kodeninja.jem.server.content.fs.DirectoryMediaSource">
  *      <!-- Specifies the amount of time to wait in between scans -->
  *      <refresh>60000</refresh>
+ *      <!-- Tells the plugin to skip over file types it hasn't been told to look for -->
+ *      <ignoreUnknown>true</ignoreUnknown>
  *      <!-- Specifies directories to scan -->
  *      <directory>shared/music</directory>
  *      <directory>shared/videos</directory>
@@ -60,9 +60,11 @@ import net.kodeninja.util.MimeType;
  * @author Charles Ikeson
  */
 public class DirectoryMediaSource extends MinimumTimeJob implements
-KNRunnableModule, MediaSource {
+KNRunnableModule, KNServiceModule, MediaSource {
 	protected static final GenericFile DEFAULT_FACTORY = new GenericFile();
-	protected int refreshTime = 600000; // Use default wait time of 10 mins
+	protected static final int DEFAULT_REFRESH_TIME = 600000;
+	protected int refreshTime = DEFAULT_REFRESH_TIME; // Use default wait time of 10 mins
+	protected boolean ignoreUnknown = true;
 	protected Set<File> mediaBase = new HashSet<File>();
 	protected String sourceName = "Unnamed Media Source";
 	protected Map<String, MimeType> extMap = new HashMap<String, MimeType>();
@@ -71,11 +73,10 @@ KNRunnableModule, MediaSource {
 	protected int mediaAdded = 0;
 
 	public DirectoryMediaSource() {
-		// Wait 2 seconds
-		super(true, JemServer.getInstance().getScheduler(), 2000, false);
+		super(true, JemServer.getScheduler(), DEFAULT_REFRESH_TIME, false);
 	}
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		sourceName = xmlNode.getAttributes().getNamedItem("name").getNodeValue();
 		for (Node modNode = xmlNode.getFirstChild(); modNode != null; modNode = modNode.getNextSibling())
 			if (modNode.getNodeType() != Node.ELEMENT_NODE)
@@ -86,18 +87,25 @@ KNRunnableModule, MediaSource {
 				}
 				catch (NumberFormatException e) { /* Do nothing */ }
 			}
+			else if (modNode.getNodeName().equals("ignoreUnkown")) {
+				try {
+					String tmpString = modNode.getTextContent();
+					ignoreUnknown = tmpString.equals("1") || tmpString.equalsIgnoreCase("yes") || tmpString.equalsIgnoreCase("true");
+				}
+				catch (NumberFormatException e) { /* Do nothing */ }
+			}
 			else if (modNode.getNodeName().equals("directory")) {
 				String dirString = modNode.getTextContent().trim();
 				if (dirString.length() > 0)
 					mediaBase.add(new File(dirString));
 				else
-					throw new KNXMLModuleInitException("Invalid directory.");
+					throw new KNModuleInitException("Invalid directory.");
 			} else if (modNode.getNodeName().equals("mimetype")) {
 				Node attrMime = modNode.getAttributes().getNamedItem("type");
 				Node attrClass = modNode.getAttributes().getNamedItem("class");
 
 				if ((attrMime == null) || (attrClass == null))
-					throw new KNXMLModuleInitException("Malformed MimeType element.");
+					throw new KNModuleInitException("Malformed MimeType element.");
 
 				MimeType mime = null;
 				String className = attrClass.getNodeValue();
@@ -106,7 +114,7 @@ KNRunnableModule, MediaSource {
 				try {
 					mime = new MimeType(attrMime.getNodeValue());
 				} catch (MalformedMimeTypeException e) {
-					throw new KNXMLModuleInitException("Invalid MimeType: "
+					throw new KNModuleInitException("Invalid MimeType: "
 					                                   + attrMime.getNodeValue());
 				}
 
@@ -116,17 +124,17 @@ KNRunnableModule, MediaSource {
 					if (o instanceof MetadataFactory)
 						factory = (MetadataFactory) o;
 					else
-						throw new KNXMLModuleInitException("'" + className
+						throw new KNModuleInitException("'" + className
 						                                   + "' is not a valid metadata factory.");
 				} catch (ClassNotFoundException e) {
-					throw new KNXMLModuleInitException(
+					throw new KNModuleInitException(
 					                                   "Unable to location module: " + className);
 				} catch (IllegalAccessException e) {
-					throw new KNXMLModuleInitException(
+					throw new KNModuleInitException(
 					                                   "Permission denied attempting to load module: "
 					                                   + className);
 				} catch (InstantiationException e) {
-					throw new KNXMLModuleInitException(
+					throw new KNModuleInitException(
 					                                   "An error occured while attempting to load the module: "
 					                                   + className);
 				}
@@ -142,14 +150,14 @@ KNRunnableModule, MediaSource {
 							extMap.put(extNode.getTextContent().toLowerCase(),
 							           mime);
 						else
-							throw new KNXMLModuleInitException(
+							throw new KNModuleInitException(
 							"Blank extensions are not allowed.");
 					} else
-						throw new KNXMLModuleInitException(
+						throw new KNModuleInitException(
 						                                   "Unexpected element encountered: "
 						                                   + extNode.getNodeName());
 			} else
-				throw new KNXMLModuleInitException(
+				throw new KNModuleInitException(
 				                                   "Unexpected element encountered: "
 				                                   + modNode.getNodeName());
 		JemServer.getInstance().addLog("[" + sourceName + "] Loaded "
@@ -157,17 +165,42 @@ KNRunnableModule, MediaSource {
 		                               + " extensions mapped to "
 		                               + metadataMap.size()
 		                               + " MimeTypes.");
-		reset();
+	}
+	
+	public void init() throws KNModuleInitException {
+		setTime(refreshTime);
+		//start();
+		runNow();
+	}
+	
+	public void deinit() throws KNModuleInitException {
 	}
 
 	synchronized void incMediaCount() {
 		mediaAdded++;
 	}
 
+	private String formatTime(long msec) {
+		long days =  (long)Math.floor(msec / 86400000.0);
+		long hours = (long)Math.floor(msec /  3600000.0);
+		long mins =  (long)Math.floor(msec /    60000.0);
+		long secs =  (long)Math.floor(msec /     1000.0);
+		
+		String result = "";
+		
+		if (days > 0) result += days + "d ";
+		if (hours > 0) result += (hours % 24) + "h ";
+		if (mins > 0) result += (mins % 60) + "m ";
+		if (secs > 0) result += (secs % 60) + "s ";
+		result += (msec % 1000) + "ms";
+		
+		return result;
+	}
+	
 	@Override
 	public void run() {
 		long msec, end;
-		JemServer.getInstance().startMediaUpdate(this);
+		JemServer.getMediaStorage().startUpdate();
 
 		// Look for new media
 		JemServer.getInstance().addLog("[" + getSourceName() + "] Starting directory scans for new media.");
@@ -175,35 +208,29 @@ KNRunnableModule, MediaSource {
 		msec = System.currentTimeMillis();
 		mediaAdded = 0;
 		for (File tmpDir : mediaBase)
-			(new AddDirectoryJob(this, tmpDir)).start();
+			(new AddDirectoryJob(this, tmpDir, ignoreUnknown)).start();
 
-		JemServer.getInstance().getScheduler().waitFor(jobs);
+		JemServer.getScheduler().waitFor(jobs);
 		end = System.currentTimeMillis();
 
-		JemServer.getInstance().addLog("Scanning finished: Added " + 
-		                               mediaAdded + " new files. (" +
-		                               ((end - msec) / 1000.0) + "s)");
+		JemServer.getInstance().addLog("[" + getSourceName() + "] Scanning finished: " + formatTime(end - msec) + " elapsed.");
 
 		// Prune media tree
 		JemServer.getInstance().addLog("[" + getSourceName() + "] Starting media tree pruning to remove missing media.");
 		msec = System.currentTimeMillis();
-		Iterator<MediaItem> it = JemServer.getInstance().getAllMedia();
-		LinkedList<URI> removeList = new LinkedList<URI>();
-		while (it.hasNext()) {
-			MediaItem mi = it.next();
-			if (mi.getMediaURI().toString().startsWith("file:")) {
-				File path = new File(mi.getMediaURI().getPath());
+	
+		for (MediaItem mi: JemServer.getMediaStorage().getAllMedia()) {
+			if (mi.getURI().toString().startsWith("file:")) {
+				File path = new File(mi.getURI().getPath());
 				if (path.exists() == false)
-					removeList.add(mi.getMediaURI());
+					JemServer.getMediaStorage().removeMedia(mi);
 			}
 		}
-		JemServer.getInstance().removeMedia(removeList);
-		end = System.currentTimeMillis();
-		JemServer.getInstance().addLog("Pruning finished: Removed " +
-		                               removeList.size() + " dead files. (" +
-		                               ((end - msec) / 1000.0) + "s)");
 
-		setTime(refreshTime);
+		end = System.currentTimeMillis();
+		JemServer.getInstance().addLog("[" + getSourceName() + "] Pruning finished: " + formatTime(end - msec) + " elapsed.");
+
+		JemServer.getMediaStorage().finishUpdate();
 		super.run();
 	}
 
@@ -242,7 +269,7 @@ KNRunnableModule, MediaSource {
 	}
 
 	public int getVersionRevision() {
-		return 0;
+		return 1;
 	}
 
 }

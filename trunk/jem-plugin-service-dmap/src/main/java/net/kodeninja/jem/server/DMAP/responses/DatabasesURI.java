@@ -12,7 +12,7 @@ import net.kodeninja.DMAP.parameters.dmap.mtco;
 import net.kodeninja.DMAP.parameters.dmap.muty;
 import net.kodeninja.jem.server.JemServer;
 import net.kodeninja.jem.server.DMAP.DMAPService;
-import net.kodeninja.jem.server.content.MediaUpdateHook;
+import net.kodeninja.jem.server.storage.MediaUpdateHook;
 
 public class DatabasesURI extends DMAPURI implements MediaUpdateHook {
 
@@ -49,9 +49,8 @@ public class DatabasesURI extends DMAPURI implements MediaUpdateHook {
 	}
 
 	public void mediaChanged() {
-		mediaCountTag.setValue(JemServer.getInstance().getMediaCount());
-		collectionCountTag.setValue(JemServer.getInstance()
-				.getCollectionCount() + 1);
+		mediaCountTag.setValue(JemServer.getMediaStorage().mediaCount());
+		collectionCountTag.setValue(JemServer.getMediaStorage().collectionCount() + 1);
 	}
 
 }

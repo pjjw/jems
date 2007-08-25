@@ -3,7 +3,6 @@ package net.kodeninja.jem.server.DMAP.responses;
 import java.io.File;
 import java.util.Date;
 import java.util.Scanner;
-import java.util.Iterator;
 
 import net.kodeninja.DMAP.DataTypes.DMAPListParameter;
 import net.kodeninja.DMAP.DataTypes.DMAPParameter;
@@ -14,20 +13,15 @@ import net.kodeninja.DMAP.parameters.daap.apso;
 import net.kodeninja.DMAP.parameters.daap.asal;
 import net.kodeninja.DMAP.parameters.daap.asar;
 import net.kodeninja.DMAP.parameters.daap.asbr;
-import net.kodeninja.DMAP.parameters.daap.asbt;
 import net.kodeninja.DMAP.parameters.daap.ascm;
 import net.kodeninja.DMAP.parameters.daap.ascr;
 import net.kodeninja.DMAP.parameters.daap.asda;
-import net.kodeninja.DMAP.parameters.daap.asdc;
-import net.kodeninja.DMAP.parameters.daap.asdk;
 import net.kodeninja.DMAP.parameters.daap.asdm;
-import net.kodeninja.DMAP.parameters.daap.asdn;
 import net.kodeninja.DMAP.parameters.daap.asfm;
 import net.kodeninja.DMAP.parameters.daap.asgn;
 import net.kodeninja.DMAP.parameters.daap.assz;
 import net.kodeninja.DMAP.parameters.daap.astm;
 import net.kodeninja.DMAP.parameters.daap.astn;
-import net.kodeninja.DMAP.parameters.daap.asur;
 import net.kodeninja.DMAP.parameters.daap.asyr;
 import net.kodeninja.DMAP.parameters.dmap.mcti;
 import net.kodeninja.DMAP.parameters.dmap.miid;
@@ -61,9 +55,10 @@ import net.kodeninja.jem.server.DMAP.DMAPResponsePacket;
 import net.kodeninja.jem.server.DMAP.DMAPService;
 import net.kodeninja.jem.server.DMAP.content.DMAPMediaCollection;
 import net.kodeninja.jem.server.DMAP.content.DMAPQueryResultCollection;
-import net.kodeninja.jem.server.content.MediaCollection;
-import net.kodeninja.jem.server.content.MediaItem;
-import net.kodeninja.jem.server.content.MetadataTypes;
+import net.kodeninja.jem.server.storage.MediaCollection;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.jem.server.storage.Metadata;
+import net.kodeninja.util.MimeType;
 
 public class ItemsURI implements URIHandler {
 	protected DMAPService service;
@@ -120,185 +115,149 @@ public class ItemsURI implements URIHandler {
 
 	protected void populateItem(mlit listItem, String meta, MediaItem mi,
 			Integer containerId) {
-		String tmpMetadata;
 
 		addMetadataToItem(listItem, meta, new mikd(mikd.ITEM_KIND_DAAP));
 		if (containerId != null)
 			addMetadataToItem(listItem, meta, new mcti(containerId));
 
-		if (service.transcodeItem(mi) == false)
-			addMetadataToItem(listItem, meta, new asdk(asdk.DATA_KIND_LOCAL));
-		// else {
-		// addMetadataToItem(listItem, meta, new asdk((byte)1));
-		// addMetadataToItem(listItem, meta, new
-		// asul("http://192.168.0.146:3689/databases/1/items/" + mi.hashCode() +
-		// ".mpg"));
-		// }
-		addMetadataToItem(listItem, meta, new asbt());
-		addMetadataToItem(listItem, meta, new asdc());
-		addMetadataToItem(listItem, meta, new asdn());
-		addMetadataToItem(listItem, meta, new asur());
-		addMetadataToItem(listItem, meta, new ascr());
-
 		addMetadataToItem(listItem, meta, new miid(mi.hashCode()));
 
-		tmpMetadata = mi.getMetadata(MetadataTypes.Title);
-		if (tmpMetadata != null)
-			addMetadataToItem(listItem, meta, new minm(tmpMetadata));
+		MimeType mime = JemServer.getMediaStorage().getMimeType(mi);
+		boolean isTranscoded = service.transcodeItem(mi);
+		boolean dpap = mime.getPrimaryType().equals("image");
+		boolean daap = mime.getPrimaryType().equalsIgnoreCase("audio") || mime.getPrimaryType().equalsIgnoreCase("video");
 
-		tmpMetadata = mi.getMetadata(MetadataTypes.Artist);
-		if (tmpMetadata != null)
-			addMetadataToItem(listItem, meta, new asar(tmpMetadata));
-
-		tmpMetadata = mi.getMetadata(MetadataTypes.Set);
-		if (tmpMetadata != null)
-			addMetadataToItem(listItem, meta, new asal(tmpMetadata));
-
-		try {
-			tmpMetadata = mi.getMetadata(MetadataTypes.SetPosition);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new astn(Short
-				                                           .parseShort(tmpMetadata)));
-		} catch (NumberFormatException e) {
-		}
-
-		tmpMetadata = mi.getMetadata(MetadataTypes.Genre);
-		if (tmpMetadata != null)
-			addMetadataToItem(listItem, meta, new asgn(tmpMetadata));
-
-		tmpMetadata = mi.getMetadata(MetadataTypes.Description);
-		if (tmpMetadata != null)
-			addMetadataToItem(listItem, meta, new ascm(tmpMetadata));
-
-		try {
-			tmpMetadata = mi.getMetadata(MetadataTypes.Length);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new astm(Integer
-				                                           .parseInt(tmpMetadata)));
-		} catch (NumberFormatException e) {
-		}
-
-		try {
-			tmpMetadata = mi.getMetadata(MetadataTypes.Year);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new asyr(Short
-				                                           .parseShort(tmpMetadata)));
-		} catch (NumberFormatException e) {
-		}
-
-		try {
-			tmpMetadata = mi.getMetadata(MetadataTypes.BitRate);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new asbr(Short
-				                                           .parseShort(tmpMetadata)));
-		} catch (NumberFormatException e) {
-		}
-
-		if (mi.getMediaMimeType().getPrimaryType().equals("image")) {
-			String filename = mi.getMediaURI().toString();
-			addMetadataToItem(listItem, meta, new pimf(filename
-			                                           .substring(filename.lastIndexOf("/") + 1)));
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.Format);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new pfmt(tmpMetadata));
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.Width);
-			try {
-				if (tmpMetadata != null)
-					addMetadataToItem(listItem, meta, new pwth(Integer
-					                                           .parseInt(tmpMetadata)));
-			} catch (NumberFormatException e) {
-			}
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.Height);
-			try {
-				if (tmpMetadata != null)
-					addMetadataToItem(listItem, meta, new phgt(Integer
-					                                           .parseInt(tmpMetadata)));
-			} catch (NumberFormatException e) {
-			}
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.AspectRatio);
-			if (tmpMetadata != null)
-				addMetadataToItem(listItem, meta, new pasp(tmpMetadata));
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.FileSize);
-			try {
-				addMetadataToItem(listItem, meta, new pifs(Integer
-				                                           .parseInt(tmpMetadata)));
-			} catch (NumberFormatException e) {
-			}
-			try {
-				addMetadataToItem(listItem, meta, new plsz(Long
-				                                           .parseLong(tmpMetadata)));
-			} catch (NumberFormatException e) {
-			}
-
-			tmpMetadata = mi.getMetadata(MetadataTypes.Rating);
-			try {
-				addMetadataToItem(listItem, meta, new prat(Integer
-				                                           .parseInt(tmpMetadata)));
-			} catch (NumberFormatException e) {
-			}
-
-			if (isMetaFlagSet(meta, "dpap.FileData")
-					&& (isMetaFlagSet(meta, "dpap.thumb") != isMetaFlagSet(
-					                                                       meta,
-					"dpap.hires")))
-				addMetadataToItem(listItem, meta, new pfdt(new File(mi
-				                                                    .getMediaURI()), isMetaFlagSet(meta, "dpap.thumb")));
-		} else {
-			if (service.transcodeItem(mi) == false)
+		for (Metadata metadata: mi.getMetadataList()) {
+			switch (metadata.getType()) {
+			
+			case DateAdded:
+				if (daap) {
+					addMetadataToItem(listItem, meta, new asda(new Date(Long.parseLong(metadata.getValue()))));
+					addMetadataToItem(listItem, meta, new asdm(new Date(Long.parseLong(metadata.getValue()))));
+				}
+				break;
+				
+			case Artist:
+				addMetadataToItem(listItem, meta, new asar(metadata.getValue()));
+				break;
+				
+			case Title:
+				addMetadataToItem(listItem, meta, new minm(metadata.getValue()));
+				break;
+				
+			case Genre:
+				addMetadataToItem(listItem, meta, new asgn(metadata.getValue()));
+				break;
+				
+			case Set:
+				addMetadataToItem(listItem, meta, new asal(metadata.getValue()));
+				break;
+				
+			case SetPosition:
 				try {
-					tmpMetadata = mi.getMetadata(MetadataTypes.FileSize);
-					if (tmpMetadata != null)
-						addMetadataToItem(listItem, meta, new assz(Integer
-						                                           .parseInt(tmpMetadata)));
-				} catch (NumberFormatException e) {
-				}
-
+					addMetadataToItem(listItem, meta, new astn(Short.parseShort(metadata.getValue())));
+				} catch (NumberFormatException e) {}
+				break;
+				
+			case Year:
 				try {
-					tmpMetadata = mi.getMetadata(MetadataTypes.DateAdded);
-					if (tmpMetadata != null) {
-						addMetadataToItem(listItem, meta, new asda(new Date(Long
-						                                                    .parseLong(tmpMetadata))));
-						addMetadataToItem(listItem, meta, new asdm(new Date(Long
-						                                                    .parseLong(tmpMetadata))));
-					}
-				} catch (NumberFormatException e) {
-				}
-
-				if (service.transcodeItem(mi)
-						&& (mi.getMediaMimeType().getPrimaryType().equals("video")))
-					addMetadataToItem(listItem, meta, new asfm("mpg"));
-				else {
-					tmpMetadata = mi.getMetadata(MetadataTypes.Format);
-					if (tmpMetadata != null)
-						addMetadataToItem(listItem, meta, new asfm(tmpMetadata));
-				}
-
-				if (mi.getMediaMimeType().getPrimaryType().equals("video")) {
-					addMetadataToItem(listItem, meta, new aeHV(aeHV.BOOL_TRUE));
-					addMetadataToItem(listItem, meta, new aeMK(
-					                                           aeMK.MEDIA_KIND_VIDEO));
-				} else if (mi.getMediaMimeType().getPrimaryType().equals("audio")) {
-					addMetadataToItem(listItem, meta, new aeHV(aeHV.BOOL_FALSE));
-					addMetadataToItem(listItem, meta, new aeMK(
-					                                           aeMK.MEDIA_KIND_AUDIO));
-				}
-
-				tmpMetadata = mi.getMetadata(MetadataTypes.Rating);
+					addMetadataToItem(listItem, meta, new asyr(Short.parseShort(metadata.getValue())));
+				} catch (NumberFormatException e) {}
+				break;
+				
+			case Description:
+				addMetadataToItem(listItem, meta, new ascm(metadata.getValue()));
+				break;
+				
+			case Length:
 				try {
-					addMetadataToItem(listItem, meta, new ascr(Byte
-					                                           .parseByte(tmpMetadata)));
-				} catch (NumberFormatException e) {
+					addMetadataToItem(listItem, meta, new astm(Integer.parseInt(metadata.getValue())));
+				} catch (NumberFormatException e) {}
+				break;
+				
+			case FileSize:
+				if (isTranscoded == false) {
+					try {
+						if (dpap) {
+							addMetadataToItem(listItem, meta, new plsz(Long.parseLong(metadata.getValue())));					
+							addMetadataToItem(listItem, meta, new pifs(Integer.parseInt(metadata.getValue())));						
+						}
+						else if (daap) {
+							addMetadataToItem(listItem, meta, new assz(Integer.parseInt(metadata.getValue())));
+						}
+					} catch (NumberFormatException e) {}
 				}
+				break;
+				
+			case Format:
+				if ((mime.getPrimaryType().equalsIgnoreCase("video")) && (isTranscoded))
+					addMetadataToItem(listItem, meta, new asfm("mov"));
+				else if (dpap)
+					addMetadataToItem(listItem, meta, new pfmt(metadata.getValue()));
+				else if (daap)
+					addMetadataToItem(listItem, meta, new asfm(metadata.getValue()));
+				break;
+				
+			case BitRate:
+				try {
+					addMetadataToItem(listItem, meta, new asbr(Short.parseShort(metadata.getValue())));
+				} catch (NumberFormatException e) {}
+				break;
+				
+			case AspectRatio:
+				if (dpap)
+					addMetadataToItem(listItem, meta, new pasp(metadata.getValue()));
+				break;
+				
+			case Width:
+				if (dpap)
+					try {
+						addMetadataToItem(listItem, meta, new pwth(Integer.parseInt(metadata.getValue())));
+					} catch (NumberFormatException e) {}
+					break;
+					
+			case Height:
+				if (dpap)
+					try {
+						addMetadataToItem(listItem, meta, new phgt(Integer.parseInt(metadata.getValue())));
+					} catch (NumberFormatException e) {}
+					break;
+					
+			case Rating:
+				try {
+					if (dpap)
+						addMetadataToItem(listItem, meta, new prat(Integer.parseInt(metadata.getValue())));
+					else if (daap)
+						addMetadataToItem(listItem, meta, new ascr(Byte.parseByte(metadata.getValue())));
+				} catch (NumberFormatException e) {}
+				break;
+				
+			default: break;
+			}
+		}
+
+		//Image only metadata (iPhoto)
+		if (mime.getPrimaryType().equalsIgnoreCase("image")) {
+			String filename = mi.getURI().toString();
+			addMetadataToItem(listItem, meta, new pimf(filename.substring(filename.lastIndexOf("/") + 1)));
+
+			if (isMetaFlagSet(meta, "dpap.FileData") && (isMetaFlagSet(meta, "dpap.thumb") != isMetaFlagSet(meta, "dpap.hires")))
+				addMetadataToItem(listItem, meta, new pfdt(new File(mi.getURI()), isMetaFlagSet(meta, "dpap.thumb")));
+		}
+		//Video & Audio only metadata (iTunes)
+		else if (mime.getPrimaryType().equalsIgnoreCase("audio") || mime.getPrimaryType().equalsIgnoreCase("video")) {
+			if (mime.getPrimaryType().equals("video")) {
+				addMetadataToItem(listItem, meta, new aeHV(aeHV.BOOL_TRUE));
+				addMetadataToItem(listItem, meta, new aeMK(aeMK.MEDIA_KIND_VIDEO));
+			} else if (mime.getPrimaryType().equals("audio")) {
+				addMetadataToItem(listItem, meta, new aeHV(aeHV.BOOL_FALSE));
+				addMetadataToItem(listItem, meta, new aeMK(aeMK.MEDIA_KIND_AUDIO));
+			}
 		}
 	}
 
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-	                                                HTTPPacket<HTTPHeader, HTTPBody> Packet) {
+	public  HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet) {
 
 		String path = Packet.getHeader().getLocation().getPath();
 		String queryStr = Packet.getHeader().getLocation().getQuery();
@@ -336,14 +295,14 @@ public class ItemsURI implements URIHandler {
 			root = new apso();
 			try {
 				containerId = Integer.parseInt(containerStr);
-				Iterator<MediaCollection> it = JemServer.getInstance().getCollections();
-				while (it.hasNext()) {
-					MediaCollection tmpCol = it.next();
+
+				for (MediaCollection tmpCol: JemServer.getMediaStorage().getAllCollections()) {
 					if (tmpCol.hashCode() == containerId) {
 						collection = tmpCol;
 						break;
 					}
 				}
+				
 			} catch (NumberFormatException e) {
 			}
 		} else
@@ -352,34 +311,42 @@ public class ItemsURI implements URIHandler {
 		if (collection == null)
 			collection = revision;
 
-		if (type != null)
+		if ((type != null) && (revision != null))
 			revision = new DMAPMediaCollection(revision, type);
 
-		if (query != null)
+		if ((query != null) && (revision != null))
 			revision = new DMAPQueryResultCollection(revision, query);
 
 		root.addParameter(statusCode);
 		root.addParameter(new muty());
-		root.addParameter(new mtco(collection.getMediaCount()));
-		root.addParameter(new mrco(collection.getMediaCount()));
+		if (collection != null) {
+			root.addParameter(new mtco(collection.getMediaCount()));
+			root.addParameter(new mrco(collection.getMediaCount()));
+		}
+		else {
+			root.addParameter(new mtco(0));
+			root.addParameter(new mrco(0));	
+		}
 
 		mlcl list = new mlcl();
 		root.addParameter(list);
-		for (MediaItem mi : revision) {
-			if (collection.acceptMedia(mi)) {
-				mlit item = new mlit();
-				list.addParameter(item);
+		if (revision != null) {
+			for (MediaItem mi : revision) {
+				if (collection.acceptMedia(mi)) {
+					mlit item = new mlit();
+					list.addParameter(item);
 
-				populateItem(item, meta, mi, containerId);
+					populateItem(item, meta, mi, containerId);
+				}
 			}
 		}
 
 		HTTPHeader header = new HTTPHeader(HTTPVersion.HTTP1_1,
-		                                   HTTPResponseCode.HTTP_200_OK);
+				HTTPResponseCode.HTTP_200_OK);
 		DMAPHTTPBody body = new DMAPHTTPBody();
 		body.addParameter(root);
 
-		HTTPPacket<HTTPHeader, HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
+		HTTPPacket<HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
 				header, body, service);
 
 		return response;

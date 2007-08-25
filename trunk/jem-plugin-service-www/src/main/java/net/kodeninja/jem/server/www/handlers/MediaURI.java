@@ -1,30 +1,36 @@
 package net.kodeninja.jem.server.www.handlers;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Iterator;
 
 import net.kodeninja.http.packet.HTTPBody;
 import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 import net.kodeninja.http.packet.HTTPResponseCode;
+import net.kodeninja.http.packet.HTTPStreamBody;
 import net.kodeninja.http.packet.HTTPVersion;
 import net.kodeninja.http.service.HTTPSocket;
 import net.kodeninja.http.service.handlers.URIHandler;
 import net.kodeninja.jem.server.JemServer;
-import net.kodeninja.jem.server.content.MediaCollection;
-import net.kodeninja.jem.server.content.MediaItem;
+import net.kodeninja.jem.server.storage.MediaCollection;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.jem.server.www.WWWService;
 import net.kodeninja.jem.server.www.content.CollectionListBody;
 import net.kodeninja.jem.server.www.content.IndexBody;
 import net.kodeninja.jem.server.www.content.MediaBody;
-import net.kodeninja.jem.server.www.content.MediaItemBody;
 import net.kodeninja.jem.server.www.content.MediaListBody;
 import net.kodeninja.jem.server.www.content.MediaMetadataBody;
 import net.kodeninja.jem.server.www.content.PlayerBody;
 
 public class MediaURI implements URIHandler {
+	private WWWService owner;
 
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet) {
+	public MediaURI(WWWService owner) {
+		this.owner = owner;
+	}
+
+	public  HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet) {
 		String location = Packet.getHeader().getLocation().toString();
 
 		HTTPBody body = null;
@@ -33,8 +39,7 @@ public class MediaURI implements URIHandler {
 			body = new IndexBody();
 		else if (location.startsWith("/collections/")) {
 			if (location.equals("/collections/"))
-				body = new CollectionListBody(JemServer.getInstance()
-						.getCollections());
+				body = new CollectionListBody(JemServer.getMediaStorage().getAllCollections());
 			else {
 				String sid = location.substring(13);
 				sid = sid.substring(0, sid.indexOf("/"));
@@ -42,13 +47,9 @@ public class MediaURI implements URIHandler {
 				try {
 					int id = Integer.parseInt(sid);
 
-					Iterator<MediaCollection> colIt = JemServer.getInstance()
-							.getCollections();
-					while (colIt.hasNext()) {
-						MediaCollection col = colIt.next();
-
+					for (MediaCollection col: JemServer.getMediaStorage().getAllCollections()) {
 						if (col.hashCode() == id) {
-							body = new MediaListBody(col.iterator());
+							body = new MediaListBody(owner, col);
 							break;
 						}
 					}
@@ -59,9 +60,7 @@ public class MediaURI implements URIHandler {
 
 		} else if (location.startsWith("/items/"))
 			if (location.equals("/items/"))
-				body = new MediaListBody(JemServer.getInstance().getAllMedia());
-			else if (location.endsWith("/play/"))
-				body = new PlayerBody();
+				body = new MediaListBody(owner, JemServer.getMediaStorage().getAllMedia());
 			else {
 				String sid = location.substring(7);
 				sid = sid.substring(0, sid.indexOf("/"));
@@ -69,18 +68,21 @@ public class MediaURI implements URIHandler {
 				try {
 					int id = Integer.parseInt(sid);
 
-					Iterator<MediaItem> mIt = JemServer.getInstance()
-							.getAllMedia();
-					while (mIt.hasNext()) {
-						MediaItem mi = mIt.next();
+					for (MediaItem mi: JemServer.getMediaStorage().getAllMedia()) {
 
 						if (mi.hashCode() == id) {
-							if (location.endsWith("video.flv"))
+							if (location.endsWith("/play/")) {
+								try {
+									body = new PlayerBody(JemServer.getMediaStorage().getMimeType(mi).getPrimaryType());
+								}
+								catch (FileNotFoundException e) {}
+							}
+							else if (location.endsWith("video.flv"))
 								body = new MediaBody(mi);
 							else if (location.endsWith("/info/"))
 								body = new MediaMetadataBody(mi);
 							else if (location.endsWith("/stream/"))
-								body = new MediaItemBody(mi);
+								body = new HTTPStreamBody(mi.getURI().toURL().openStream(), JemServer.getMediaStorage().getMimeType(mi));
 							break;
 						}
 					}
@@ -95,7 +97,7 @@ public class MediaURI implements URIHandler {
 			HTTPHeader header = new HTTPHeader(HTTPVersion.HTTP1_1,
 					HTTPResponseCode.HTTP_200_OK);
 			header.setParameter("Cache-Control", "no-cache");
-			return new HTTPPacket<HTTPHeader, HTTPBody>(header, body);
+			return new HTTPPacket<HTTPBody>(header, body);
 		} else
 			return null;
 	}

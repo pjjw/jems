@@ -32,7 +32,6 @@ abstract public class DMAPStringParameter extends DMAPParameter {
 
 	@Override
 	public int dataLength() {
-		// TODO Auto-generated method stub
 		return value.length();
 	}
 

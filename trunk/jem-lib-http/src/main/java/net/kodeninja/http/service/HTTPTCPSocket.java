@@ -1,7 +1,9 @@
 package net.kodeninja.http.service;
 
 import java.io.IOException;
+import java.io.BufferedInputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 import net.kodeninja.http.packet.HTTPBody;
 import net.kodeninja.http.packet.HTTPHeader;
@@ -10,35 +12,49 @@ import net.kodeninja.http.packet.InvalidHeaderException;
 
 public class HTTPTCPSocket implements HTTPSocket {
 	protected Socket socket;
+	protected String serverString;
 
-	public HTTPTCPSocket(Socket Connection) {
+	public HTTPTCPSocket(Socket Connection, String serverString) {
 		socket = Connection;
+		this.serverString = serverString;
 	}
 
-	public boolean sendPacket(
-			HTTPPacket<? extends HTTPHeader, ? extends HTTPBody> Packet) {
+	public boolean sendPacket(HTTPPacket<? extends HTTPBody> Packet)
+			throws IOException {
 		if (socket == null)
 			return false;
-		try {
-			socket.getOutputStream().flush();
-			Packet.writeToStream(socket.getOutputStream());
-			socket.getOutputStream().flush();
-		} catch (IOException e) {
-			return false;
+		
+		if (Packet.allowHeaderUpdate) {
+			if (Packet.getHeader().getType() == HTTPHeader.HeaderType.REQUEST)
+				Packet.getHeader().setParameter("Host", socket.getInetAddress() + ":" + socket.getPort());
+			else
+				Packet.getHeader().setParameter("Server", serverString);
 		}
+
+		socket.getOutputStream().flush();
+		Packet.writeToStream(socket.getOutputStream());
+		socket.getOutputStream().flush();
 		return true;
 	}
 
-	public boolean getPacket(
-			HTTPPacket<? extends HTTPHeader, ? extends HTTPBody> Packet) throws IOException {
+	public boolean getPacket(HTTPPacket<? extends HTTPBody> Packet)
+			throws IOException {
 		if (socket == null)
 			return false;
 		try {
-			Packet.readFromStream(socket.getInputStream());
+			Packet.readFromStream(new BufferedInputStream(socket.getInputStream()));
 		} catch (InvalidHeaderException e) {
 			return false;
 		}
 		return true;
+	}
+
+	public String getRemoteHost() {
+		return socket.getInetAddress().getHostAddress();
+	}
+
+	public int getRemotePort() {
+		return socket.getPort();
 	}
 
 	public void close() {
@@ -59,6 +75,25 @@ public class HTTPTCPSocket implements HTTPSocket {
 		return socket.isConnected();
 	}
 
+	public int getTimeout() {
+		if (socket != null) {
+			try {
+				return socket.getSoTimeout();
+			} catch (SocketException e) {
+			}
+		}
+		return -1;
+	}
+
+	public void setTimeout(int timeout) {
+		if (socket != null) {
+			try {
+				socket.setSoTimeout(timeout);
+			} catch (SocketException e) {
+			}
+		}
+	}
+
 	public String getName() {
 		return "HTTP TCP Socket";
 	}
@@ -72,6 +107,6 @@ public class HTTPTCPSocket implements HTTPSocket {
 	}
 
 	public int getVersionRevision() {
-		return 0;
+		return 1;
 	}
 }

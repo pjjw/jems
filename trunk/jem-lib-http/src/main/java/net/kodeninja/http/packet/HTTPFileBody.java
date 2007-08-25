@@ -33,6 +33,10 @@ public class HTTPFileBody implements HTTPBody {
 	public MimeType getMimeType() {
 		return mime;
 	}
+	
+	public String getContentType() {
+		return getMimeType().toString();
+	}
 
 	public void readFromStream(InputStream in, int ContentLength)
 			throws IOException {
@@ -46,6 +50,14 @@ public class HTTPFileBody implements HTTPBody {
 	public void writeToStream(OutputStream out) throws IOException {
 		StreamWriter sw = new StreamWriter(out);
 		sw.writeStream(new FileInputStream(file));
+	}
+	
+	public boolean forceCompression() {
+		return false;
+	}
+	
+	public boolean forceChunked() {
+		return false;
 	}
 
 }

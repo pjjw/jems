@@ -19,7 +19,7 @@ public class StreamWriter {
 	/**
 	 * The maximum buffer size.
 	 */
-	public final int MAX_BUFFER = 1024 * 8;
+	public final int MAX_BUFFER = 512;//1024 * 8;
 
 	/**
 	 * Creates one using the passed output stream.
@@ -70,7 +70,7 @@ public class StreamWriter {
 	 * @throws IOException Thrown if an error occurred during the writing.
 	 */
 	public void writeEntireStream(InputStream in) throws IOException {
-		byte buffer[] = new byte[2048];
+		byte buffer[] = new byte[MAX_BUFFER];
 		int length;
 		int amountWritten = 0;
 		while ((length = in.read(buffer)) > -1) {
@@ -78,7 +78,7 @@ public class StreamWriter {
 			outStream.write(buffer, 0, length);
 			outStream.flush();
 		}
-
+		outStream.flush();
 	}
 
 	/**
@@ -103,7 +103,9 @@ public class StreamWriter {
 		while (bytesLeft > 0) {
 			in.read(Buffer, 0, (int) Math.min(bytesLeft, bufferSize));
 			outStream.write(Buffer, 0, (int) Math.min(bytesLeft, bufferSize));
+			outStream.flush();
 			bytesLeft -= (int) Math.min(bytesLeft, bufferSize);
 		}
+		outStream.flush();
 	}
 }

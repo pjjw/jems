@@ -31,7 +31,7 @@ public class HTTPHeader {
 	}
 
 	public HTTPHeader(String Method, URI Location, HTTPVersion Version) {
-		firstLine = Method + " " + Location.toString() + " " + Version;
+		firstLine = Method + " " + Location.getPath().toString() + " " + Version;
 		version = Version;
 		method = Method;
 		location = Location;
@@ -46,21 +46,21 @@ public class HTTPHeader {
 	}
 
 	public String getParameter(String ParamName) {
-		Iterator<String> it = params.keySet().iterator();
-
-		ParamName = ParamName.toLowerCase().trim();
-
-		while (it.hasNext()) {
-			String name = it.next();
-			if (name.toLowerCase().equals(ParamName))
+		for (String name: params.keySet())
+			if (name.equalsIgnoreCase(ParamName))
 				return params.get(name);
-		}
-
+		
 		return null;
 	}
 
 	public void setParameter(String ParamName, String ParamValue) {
 		params.put(ParamName.trim(), ParamValue);
+	}
+	
+	public void removeParameter(String ParamName) {
+		for (String name: params.keySet())
+			if (name.equalsIgnoreCase(ParamName))
+				params.remove(name);
 	}
 
 	protected String getParameters() {
@@ -102,27 +102,25 @@ public class HTTPHeader {
 			try {
 				version = new HTTPVersion(firstToken);
 				try {
-					response = new HTTPResponseCode(firstLine
-							.substring(seperator1 + 1));
+					response = new HTTPResponseCode(firstLine.substring(seperator1 + 1));
 				} catch (InvalidResponseCodeException e) {
-					throw new InvalidHeaderException(
-							"Empty or bad request line.");
+					throw new InvalidHeaderException("Empty or bad response line.");
 				}
 				type = HeaderType.RESPONSE;
 			} catch (InvalidHTTPVersionException e1) {
 				if (seperator1 == seperator2)
-					throw new InvalidHeaderException(
-							"Empty or bad request line.");
+					throw new InvalidHeaderException("Empty or bad request line.");
 
 				method = firstToken;
-				location = new URI(firstLine.substring(seperator1 + 1,
-														seperator2));
+				StringBuffer tmpLoc = new StringBuffer(firstLine.substring(seperator1 + 1, seperator2).trim());
+				// Trim all leading / except 1
+				while ((tmpLoc.length() > 1) && (tmpLoc.charAt(0) == '/') && (tmpLoc.charAt(1) == '/'))
+					tmpLoc.deleteCharAt(0);
+				location = new URI(tmpLoc.toString());
 				try {
-					version = new HTTPVersion(firstLine
-							.substring(seperator2 + 1));
+					version = new HTTPVersion(firstLine.substring(seperator2 + 1));
 				} catch (InvalidHTTPVersionException e2) {
-					throw new InvalidHeaderException(
-							"Empty or bad request line.");
+					throw new InvalidHeaderException("Empty or bad request line.");
 				}
 				type = HeaderType.REQUEST;
 			}
@@ -141,11 +139,14 @@ public class HTTPHeader {
 			if ((line == null) || (line == ""))
 				break;
 			int seperator = line.indexOf(":");
-			setParameter(line.substring(0, seperator), line
-					.substring(seperator + 1).trim());
+			setParameter(line.substring(0, seperator), line.substring(seperator + 1).trim());
 		}
 	}
 
+	public String getFirstLine() {
+		return firstLine;
+	}
+	
 	public HeaderType getType() {
 		return type;
 	}
@@ -170,5 +171,6 @@ public class HTTPHeader {
 		firstLine = Version + " " + Response.toString();
 		version = Version;
 		response = Response;
+		type = HeaderType.RESPONSE;
 	}
 }

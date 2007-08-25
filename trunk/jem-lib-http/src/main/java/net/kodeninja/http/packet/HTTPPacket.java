@@ -6,21 +6,33 @@ import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
-public class HTTPPacket<H extends HTTPHeader, B extends HTTPBody> {
-	public static final DateFormat HTTPDateFormat = new SimpleDateFormat(
-			"EEE, dd MMM yyyy HH:mm:ss zzz");
-	protected H header;
+public class HTTPPacket<B extends HTTPBody> {
+	public static final DateFormat HTTPDateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+	static {
+		HTTPDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+	}
+	
+	protected HTTPHeader header;
 	protected B body;
-	protected boolean allowHeaderUpdate;
+	public boolean allowHeaderUpdate;
+	protected InputStream bodyStream = null;
+	protected int bodyStreamLen;
 
-	public HTTPPacket(H Header, B Body) {
+	public HTTPPacket(HTTPHeader Header) {
+		this.header = Header;
+		this.body = null;
+		allowHeaderUpdate = true;
+	}
+
+	public HTTPPacket(HTTPHeader Header, B Body) {
 		this.header = Header;
 		this.body = Body;
 		allowHeaderUpdate = true;
 	}
 
-	public H getHeader() {
+	public HTTPHeader getHeader() {
 		return header;
 	}
 
@@ -34,27 +46,30 @@ public class HTTPPacket<H extends HTTPHeader, B extends HTTPBody> {
 
 	public void writeToStream(OutputStream out) throws IOException {
 		boolean sendBody = true;
+
+		if (header.getType() == HTTPHeader.HeaderType.UNDETERMINED)
+			throw new IOException("Unable to send HTTP packet with undetermined type.");
+
+		boolean chunked = ((header.getParameter("Transfer-Encoding") != null) && (header.getParameter("Transfer-Encoding").equalsIgnoreCase("chunked")));
+
 		if (header != null) {
-			if ((allowHeaderUpdate) && (body != null)) {
-				header.setParameter("Date", getCurrentHTTPDate());
-				header.setParameter("Content-Type", body.getMimeType()
-						.toString());
-				if (body.getContentLength() > 0) {
-					header.setParameter("Content-Length", ""
-							+ body.getContentLength());
-					header.setParameter("Accept-Ranges", "bytes");
-				}
-			}
 			if (header.getType() == HTTPHeader.HeaderType.RESPONSE) {
 				HTTPResponseCode tmpRC = header.response;
-				if ((tmpRC.getCode() / 100 == 1) || (tmpRC.getCode() == 204)
-						|| (tmpRC.getCode() == 304))
+				if ((tmpRC.getCode() / 100 == 1) || (tmpRC.getCode() == 204) || (tmpRC.getCode() == 304))
 					sendBody = false;
 			}
-
-			if ((body != null) && (sendBody) && (body.getContentLength() < 0))
-				header.setParameter("connection", "close");
-
+			
+			if (allowHeaderUpdate) {
+				header.setParameter("Date", getCurrentHTTPDate());
+				if (body != null) {
+					header.setParameter("Content-Type", body.getContentType());
+					if ((chunked == false) && (body.getContentLength() > 0))
+						header.setParameter("Content-Length", "" + body.getContentLength());
+					if ((chunked == false) && (sendBody) && (body.getContentLength() < 0))
+						header.setParameter("Connection", "close");
+				}
+			}
+			
 			header.writeToStream(out);
 
 			if ((body != null) && (sendBody))
@@ -62,15 +77,13 @@ public class HTTPPacket<H extends HTTPHeader, B extends HTTPBody> {
 		}
 	}
 
-	public void readFromStream(InputStream in) throws InvalidHeaderException,
-			IOException {
+	public void readFromStream(InputStream in) throws InvalidHeaderException, IOException {
 		int contentLength = -1;
 		boolean hasBody = false;
 		if (header != null) {
 			header.readFromStream(in);
 			if (header.getParameter("Content-Length") != null) {
-				contentLength = Integer.parseInt(header
-						.getParameter("Content-Length"));
+				contentLength = Integer.parseInt(header.getParameter("Content-Length"));
 				hasBody = true;
 			} else if (header.getParameter("Transfer-Encoding") != null)
 				hasBody = true;
@@ -82,9 +95,38 @@ public class HTTPPacket<H extends HTTPHeader, B extends HTTPBody> {
 					hasBody = false;
 			}
 
-			if ((hasBody) && (body != null))
-				body.readFromStream(in, contentLength);
+			try {
+				if (hasBody)
+					if (body != null)
+						body.readFromStream(in, contentLength);
+					else {
+						bodyStream = in;
+						bodyStreamLen = contentLength;
+					}
+
+			}
+			catch (IOException e) {
+			}
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public boolean readBody(HTTPBody body) {
+		if (this.body != null)
+			return true;
+
+		if (bodyStream == null)
+			return false;
+
+		this.body = (B)body;
+		try {
+			body.readFromStream(bodyStream, bodyStreamLen);
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 
 }

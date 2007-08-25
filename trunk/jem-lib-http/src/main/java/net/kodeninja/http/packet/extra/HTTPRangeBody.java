@@ -66,13 +66,15 @@ public class HTTPRangeBody implements HTTPBody {
 	}
 
 	public long getContentLength() {
-		// TODO Auto-generated method stub
 		return size;
 	}
 
 	public MimeType getMimeType() {
-		// TODO Auto-generated method stub
 		return body.getMimeType();
+	}
+	
+	public String getContentType() {
+		return getMimeType().toString();
 	}
 
 	public void readFromStream(InputStream in, int ContentLength)
@@ -96,6 +98,14 @@ public class HTTPRangeBody implements HTTPBody {
 		}
 
 		return "bytes " + retVal;
+	}
+	
+	public boolean forceCompression() {
+		return false;
+	}
+	
+	public boolean forceChunked() {
+		return false;
 	}
 
 }

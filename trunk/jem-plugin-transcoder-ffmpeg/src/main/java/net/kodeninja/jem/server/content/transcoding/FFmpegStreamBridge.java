@@ -24,18 +24,9 @@ public class FFmpegStreamBridge extends Thread {
 		byte buffer[] = new byte[2048];
 		int length;
 		try {
-			while ((length = in.read(buffer)) > -1) {
-				try {
-					pid.exitValue();
-					break;
-				}
-				catch (IllegalThreadStateException e) {
-					if (out != null) {
-						out.write(buffer, 0, length);
-						out.flush();
-					}
-				}
-			}
+			while ((length = in.read(buffer)) > -1)
+				if (out != null)
+					out.write(buffer, 0, length);
 			if (out != null)
 				out.flush();
 		} catch (IOException e) {

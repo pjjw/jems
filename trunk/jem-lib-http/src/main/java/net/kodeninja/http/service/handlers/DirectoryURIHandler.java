@@ -38,8 +38,8 @@ public class DirectoryURIHandler implements URIHandler {
 		mtFactory = TypeFactory;
 	}
 
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet) {
+	public  HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet) {
 
 		String fragment = Packet.getHeader().getLocation().getPath();
 		if (fragment.startsWith(baseURI) == false)
@@ -70,7 +70,7 @@ public class DirectoryURIHandler implements URIHandler {
 		else if (request.isFile())
 			body = new HTTPFileBody(request, mtFactory);
 
-		return new HTTPPacket<HTTPHeader, HTTPBody>(new HTTPHeader(Packet
+		return new HTTPPacket<HTTPBody>(new HTTPHeader(Packet
 				.getHeader().getVersion(), HTTPResponseCode.HTTP_200_OK), body);
 	}
 

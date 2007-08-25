@@ -19,6 +19,18 @@ public interface HTTPServerSocket extends KNModule {
 	 * Closes the currently open socket.
 	 */
 	public void closeSocket();
+	
+	/**
+	 * Returns the local host name or ip of the running service.
+	 * @return Local host name or ip.
+	 */
+	public String getLocalHost();
+	
+	/**
+	 * Returns the bound port.
+	 * @return The bound port.
+	 */
+	public int getPort();
 
 	/**
 	 * Returns the status of the socket.
@@ -33,8 +45,7 @@ public interface HTTPServerSocket extends KNModule {
 	 * @param owner The requesting service object.
 	 * @return Null if no requests have yet to be processed.
 	 */
-	public HTTPChildService checkRequests(
-			HTTPService<? extends HTTPServerSocket> owner);
+	public HTTPChildService checkRequests(HTTPService<? extends HTTPServerSocket> owner);
 
 	/**
 	 * Adds a request handler for the service's use to process packets.
@@ -58,4 +69,9 @@ public interface HTTPServerSocket extends KNModule {
 	 * @return An iterator pointing at the internal list of handlers.
 	 */
 	public Iterator<PacketHandler> getHandlers();
+	
+	public void setServerString(String s);
+
+	public String getServerString();
 }
+

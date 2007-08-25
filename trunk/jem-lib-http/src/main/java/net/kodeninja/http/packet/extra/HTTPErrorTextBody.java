@@ -2,15 +2,23 @@ package net.kodeninja.http.packet.extra;
 
 import net.kodeninja.http.packet.HTTPResponseCode;
 import net.kodeninja.http.packet.HTTPTextBody;
-import net.kodeninja.util.MimeType;
 
 public class HTTPErrorTextBody extends HTTPTextBody {
 	public HTTPErrorTextBody(HTTPResponseCode ErrorCode) {
-		super("<html>\n" + "<head><title>" + ErrorCode.getDescription()
-				+ "</title></head>\n" + "<body>\n" + "<h2>"
-				+ ErrorCode.getCode() + " - " + ErrorCode.getDescription()
-				+ "</h2>\n" + "<hr>\n" + "</body>\n" + "</html>\n",
-				new MimeType("text", "html"));
+		super(HTTPTextBody.HTML_MIMETYPE);
+		text.append("<html>\n");
+		text.append("<head><title>");
+		text.append(ErrorCode.getDescription());
+		text.append("</title></head>\n");
+		text.append("<body>\n");
+		text.append("<h2>");
+		text.append(ErrorCode.getCode());
+		text.append(" - ");
+		text.append(ErrorCode.getDescription());
+		text.append("</h2>\n");
+		text.append("<hr>\n");
+		text.append("</body>\n");
+		text.append("</html>\n");
 
 	}
 

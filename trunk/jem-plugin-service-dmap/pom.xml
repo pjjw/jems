@@ -1,8 +1,10 @@
-<?xml version="1.0"?><project>
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
     <artifactId>jem</artifactId>
     <groupId>net.kodeninja</groupId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.kodeninja</groupId>
@@ -13,12 +15,12 @@
     <dependency>
       <groupId>net.kodeninja</groupId>
       <artifactId>jem-server</artifactId>
-      <version>0.1.1-SNAPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>net.kodeninja</groupId>
       <artifactId>jem-lib-http</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.1.2-SNAPSHOT</version>
     </dependency>
    <dependency>
       <groupId>net.kodeninja</groupId>

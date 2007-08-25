@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.kodeninja</groupId>
-  <version>0.1.1-SNAPSHOT</version>
+  <version>0.1.2-SNAPSHOT</version>
   <artifactId>jem</artifactId>
   <packaging>pom</packaging>
   <name>Java Extensible Media</name>
@@ -21,6 +21,15 @@
       <url>http://www.opensource.org/licenses/mit-license.php</url>
     </license>
   </licenses>
+  <scm>
+    <connection>scm:svn:https://jems.googlecode.com/svn/</connection>
+    <developerConnection>scm:svn:https://jems.googlecode.com/svn/</developerConnection>
+    <url>https://jems.googlecode.com/svn/</url>
+  </scm> 
+  <issueManagement>
+    <system>Google Project Hosting</system>
+    <url>http://code.google.com/p/jems/issues/list/</url>
+  </issueManagement> 
   <modules>
     <module>jem-common</module>
     <module>jem-server</module>
@@ -32,6 +41,8 @@
     <module>jem-plugin-service-dmap</module>
     <module>jem-plugin-transcoder-ffmpeg</module>
     <module>jem-plugin-service-www</module>
+    <module>jem-lib-upnp</module>
+    <module>jem-plugin-service-upnp-mediaserver</module>
   </modules>
   <build>
     <plugins>
@@ -62,4 +73,38 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>jxr-maven-plugin</artifactId>
+      </plugin>      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <targetjdk>1.5</targetjdk>
+          <rulesets>
+            <ruleset>/rulesets/basic.xml</ruleset>
+            <ruleset>/rulesets/controversial.xml</ruleset>
+          </rulesets>
+          <format>xml</format>
+          <linkXref>true</linkXref>
+          <sourceEncoding>utf-8</sourceEncoding>
+          <minimumTokens>100</minimumTokens>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>changelog-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>taglist-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

@@ -24,7 +24,7 @@ public class MimeTypeFactory implements KNModule, KNXMLModule {
 		mimeTypes.put(extension, mime);
 	}
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		for (Node modNode = xmlNode.getFirstChild(); modNode != null; modNode = modNode
 				.getNextSibling()) {
 			if (modNode.getNodeType() != Node.ELEMENT_NODE)
@@ -36,7 +36,7 @@ public class MimeTypeFactory implements KNModule, KNXMLModule {
 							.getNamedItem("type").getNodeValue().trim()
 							.toLowerCase());
 				} catch (MalformedMimeTypeException e) {
-					throw new KNXMLModuleInitException("Invalid MimeType.");
+					throw new KNModuleInitException("Invalid MimeType.");
 				}
 
 				for (Node subNode = modNode.getFirstChild(); subNode != null; subNode = subNode
@@ -53,7 +53,7 @@ public class MimeTypeFactory implements KNModule, KNXMLModule {
 	}
 
 	public void xmlMimeTypeInit(MimeType mime, Node xmlNode)
-			throws KNXMLModuleInitException {
+			throws KNModuleInitException {
 	}
 
 	public String getName() {

@@ -8,14 +8,14 @@ public class IndexBody extends HTTPTextBody {
 
 	public IndexBody() {
 		super(HTTP_MIMETYPE);
-		text += "<html>\n";
-		text += "  <head>\n";
-		text += "    <title>WWW Media Interface - Home</title>\n";
-		text += "  </head>\n";
-		text += "  <body>\n";
-		text += "  <a href=\"/items/\">Show All</a><br>\n";
-		text += "  <a href=\"/collections/\">By Collection</a><br>\n";
-		text += "  </body>\n";
-		text += "</html>\n";
+		text.append("<html>\n");
+		text.append("  <head>\n");
+		text.append("    <title>WWW Media Interface - Home</title>\n");
+		text.append("  </head>\n");
+		text.append("  <body>\n");
+		text.append("  <a href=\"/items/\">Show All</a><br>\n");
+		text.append("  <a href=\"/collections/\">By Collection</a><br>\n");
+		text.append("  </body>\n");
+		text.append("</html>\n");
 	}
 }

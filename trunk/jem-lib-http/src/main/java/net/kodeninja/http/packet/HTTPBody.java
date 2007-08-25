@@ -15,4 +15,10 @@ public interface HTTPBody {
 	public long getContentLength();
 
 	public MimeType getMimeType();
+	
+	public String getContentType();
+	
+	public boolean forceCompression();
+	
+	public boolean forceChunked();
 }

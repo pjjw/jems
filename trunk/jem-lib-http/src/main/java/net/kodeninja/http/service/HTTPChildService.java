@@ -7,7 +7,6 @@ import net.kodeninja.http.packet.HTTPBody;
 import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 import net.kodeninja.http.packet.HTTPResponseCode;
-import net.kodeninja.http.packet.HTTPTextBody;
 import net.kodeninja.http.packet.HTTPVersion;
 import net.kodeninja.http.packet.extra.HTTPErrorResponse;
 import net.kodeninja.http.service.handlers.PacketHandler;
@@ -57,43 +56,44 @@ public class HTTPChildService extends JobImpl implements KNModule {
 
 	@Override
 	public void run() {
-		if ((socket == null) || (socket.isOpen() == false)) {
-			stop();
-			super.run();
-			return;
-		}
-
-		boolean wasProcessed = false;
-		HTTPPacket<HTTPHeader, HTTPBody> recievedPacket = new HTTPPacket<HTTPHeader, HTTPBody>(
-				new HTTPHeader(), new HTTPTextBody());
-
 		try {
-			if (socket.getPacket(recievedPacket) == false) {
-				super.run();
-				return;
+			if ((socket == null) || (socket.isOpen() == false)) {
+				throw new IOException("Child socket no longer open.");
 			}
-		} catch (IOException e) {
-			stop();
-			return ;
-		}
 
-		Iterator<PacketHandler> it = owner.getHandlers();
-		while (it.hasNext() && (!wasProcessed)) {
-			PacketHandler handler = it.next();
-			wasProcessed = handler.process(socket, recievedPacket);
+
+			boolean wasProcessed = false;
+			HTTPPacket<HTTPBody> recievedPacket = new HTTPPacket<HTTPBody>(new HTTPHeader());
+
+			try {
+				if (socket.getPacket(recievedPacket) == false) {
+					super.run();
+					return;
+				}
+			} catch (IOException e) {
+				stop();
+				return ;
+			}
+
+			Iterator<PacketHandler> it = owner.getHandlers();
+			while (it.hasNext() && (!wasProcessed)) {
+				PacketHandler handler = it.next();
+				wasProcessed = handler.process(socket, recievedPacket);
+			}
+			if (wasProcessed == false) {
+				socket.sendPacket(new HTTPErrorResponse(HTTPResponseCode.HTTP_501_NOT_IMPLEMENTED, recievedPacket.getHeader().getVersion()));
+				stop();
+			}
+			if (recievedPacket.getHeader().getVersion().equals(HTTPVersion.HTTP1_0))
+				stop();
+			else {
+				String conn = recievedPacket.getHeader().getParameter("connection");
+				if ((conn != null) && (conn.equals("close")))
+					socket.close();
+			}
 		}
-		if (wasProcessed == false) {
-			socket.sendPacket(new HTTPErrorResponse(
-					HTTPResponseCode.HTTP_501_NOT_IMPLEMENTED, recievedPacket
-							.getHeader().getVersion()));
+		catch (Throwable e) {
 			stop();
-		}
-		if (recievedPacket.getHeader().getVersion().equals(HTTPVersion.HTTP1_0))
-			stop();
-		else {
-			String conn = recievedPacket.getHeader().getParameter("connection");
-			if ((conn != null) && (conn.equals("close")))
-				socket.close();
 		}
 
 		super.run();
@@ -108,3 +108,4 @@ public class HTTPChildService extends JobImpl implements KNModule {
 	}
 
 }
+

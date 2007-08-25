@@ -15,10 +15,10 @@ import net.kodeninja.util.KNModule;
 
 public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 	protected ServerSocket socket = null;
-	protected int requestTimeout = 100;
+	protected int requestTimeout = 500;
 	protected int childTimeout = 10000;
-	protected Set<PacketHandler> handlers = Collections
-			.synchronizedSet(new LinkedHashSet<PacketHandler>());
+	protected Set<PacketHandler> handlers = Collections.synchronizedSet(new LinkedHashSet<PacketHandler>());
+	protected String serverString = null;
 
 	public synchronized HTTPChildService checkRequests(
 			HTTPService<? extends HTTPServerSocket> owner) {
@@ -32,7 +32,7 @@ public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 			if (child != null) {
 				child.setSoTimeout(childTimeout);
 				return new HTTPChildService(owner.getScheduler(), this,
-						new HTTPTCPSocket(child));
+						new HTTPTCPSocket(child, serverString));
 			}
 		} catch (SocketTimeoutException e) {
 			return null;
@@ -63,7 +63,7 @@ public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 
 		try {
 			if (Port == -1)
-				socket = new ServerSocket();
+				socket = new ServerSocket(0);
 			else
 				socket = new ServerSocket(Port);
 			socket.setSoTimeout(requestTimeout);
@@ -79,8 +79,22 @@ public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 		return true;
 	}
 
+	public String getLocalHost() {
+		if (isOpen())
+			return socket.getInetAddress().getHostName();
+		else
+			return "";
+	}
+	
+	public int getPort() {
+		if (isOpen())
+			return socket.getLocalPort();
+		else
+			return -1;
+	}
+	
 	public boolean isOpen() {
-		return socket.isBound() && !socket.isClosed();
+		return (socket != null) && socket.isBound() && !socket.isClosed();
 	}
 
 	public String getName() {
@@ -96,7 +110,7 @@ public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 	}
 
 	public int getVersionRevision() {
-		return 0;
+		return 1;
 	}
 
 	public void addHandler(PacketHandler Handler) {
@@ -119,4 +133,11 @@ public class HTTPTCPServerSocket implements HTTPServerSocket, KNModule {
 		return childTimeout;
 	}
 
+	public void setServerString(String s) {
+		serverString = s;
+	}
+
+	public String getServerString() {
+		return serverString;
+	}
 }

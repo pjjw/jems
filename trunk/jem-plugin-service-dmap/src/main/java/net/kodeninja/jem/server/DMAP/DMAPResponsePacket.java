@@ -5,7 +5,7 @@ import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 
 public class DMAPResponsePacket<B extends HTTPBody> extends
-		HTTPPacket<HTTPHeader, B> {
+		HTTPPacket<B> {
 
 	public DMAPResponsePacket(HTTPHeader Header, B Body, DMAPService service) {
 		super(Header, Body);
