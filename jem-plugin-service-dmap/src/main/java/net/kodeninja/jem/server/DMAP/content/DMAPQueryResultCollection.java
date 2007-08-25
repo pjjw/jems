@@ -2,14 +2,14 @@ package net.kodeninja.jem.server.DMAP.content;
 
 import java.util.Scanner;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.HashSet;
 
-import net.kodeninja.jem.server.content.MediaItem;
+import net.kodeninja.jem.server.storage.MediaItem;
 
 public class DMAPQueryResultCollection extends DMAPMediaCollection {
 
 	public static final String DEFAULT_NAME = "DAAP Media Collection";
-	protected Set<MediaItem> mediaSet = new TreeSet<MediaItem>();
+	protected Set<MediaItem> mediaSet = new HashSet<MediaItem>();
 	protected String collectionQuery;
 
 	public DMAPQueryResultCollection(DMAPMediaCollection base, String query) {

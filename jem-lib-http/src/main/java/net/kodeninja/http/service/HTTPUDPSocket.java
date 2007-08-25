@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 
 import net.kodeninja.http.packet.HTTPBody;
 import net.kodeninja.http.packet.HTTPHeader;
@@ -18,19 +19,22 @@ public class HTTPUDPSocket implements HTTPSocket {
 	protected InetAddress destAddr;
 	protected int destPort;
 	protected DatagramPacket udpPacket;
+	protected String serverString;
 
-	public HTTPUDPSocket(DatagramSocket s, InetAddress dest, int port) {
+	public HTTPUDPSocket(DatagramSocket s, InetAddress dest, int port, String serverString) {
 		socket = s;
 		udpPacket = null;
 		destAddr = dest;
 		destPort = port;
+		this.serverString = serverString; 
 	}
 
-	public HTTPUDPSocket(DatagramSocket s, DatagramPacket p) {
+	public HTTPUDPSocket(DatagramSocket s, DatagramPacket p, String serverString) {
 		socket = s;
 		udpPacket = p;
 		destAddr = p.getAddress();
 		destPort = p.getPort();
+		this.serverString = serverString;
 	}
 
 	public void close() {
@@ -41,8 +45,35 @@ public class HTTPUDPSocket implements HTTPSocket {
 		return (socket != null);
 	}
 
-	public boolean sendPacket(
-			HTTPPacket<? extends HTTPHeader, ? extends HTTPBody> Packet) {
+	public int getTimeout() {
+		if (socket != null) {
+			try {
+				return socket.getSoTimeout();
+			} catch (SocketException e) {
+			}
+		}
+		return -1;
+	}
+
+	public void setTimeout(int timeout) {
+		if (socket != null) {
+			try {
+				socket.setSoTimeout(timeout);
+			} catch (SocketException e) {
+			}
+		}
+	}
+
+	public String getRemoteHost() {
+		return destAddr.getHostAddress();
+	}
+
+	public int getRemotePort() {
+		return destPort;
+	}
+
+	public synchronized boolean sendPacket(HTTPPacket<? extends HTTPBody> Packet)
+	throws IOException {
 		if (socket == null)
 			return false;
 
@@ -52,26 +83,27 @@ public class HTTPUDPSocket implements HTTPSocket {
 
 		ByteArrayOutputStream buffer = new ByteArrayOutputStream(bufSize);
 
-		try {
-			Packet.writeToStream(buffer);
-			DatagramPacket p = new DatagramPacket(buffer.toByteArray(), buffer
-					.size(), destAddr, destPort);
-			socket.send(p);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
+		if (Packet.allowHeaderUpdate) {
+			if (Packet.getHeader().getType() == HTTPHeader.HeaderType.REQUEST)
+				Packet.getHeader().setParameter("Host", socket.getInetAddress() + ":" + socket.getPort());
+			else
+				Packet.getHeader().setParameter("Server", serverString);
 		}
+			
+
+		Packet.writeToStream(buffer);
+		DatagramPacket p = new DatagramPacket(buffer.toByteArray(), buffer.size(), destAddr, destPort);
+		socket.send(p);
 
 		return true;
 	}
 
-	public boolean getPacket(
-			HTTPPacket<? extends HTTPHeader, ? extends HTTPBody> Packet) {
+	public boolean getPacket(HTTPPacket<? extends HTTPBody> Packet)
+			throws IOException {
 		if ((udpPacket == null) || (socket == null))
 			return false;
 
-		ByteArrayInputStream buffer = new ByteArrayInputStream(udpPacket
-				.getData());
+		ByteArrayInputStream buffer = new ByteArrayInputStream(udpPacket.getData());
 
 		udpPacket = null;
 
@@ -79,11 +111,7 @@ public class HTTPUDPSocket implements HTTPSocket {
 			Packet.readFromStream(buffer);
 		} catch (InvalidHeaderException e) {
 			return false;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-
+		} 
 		return true;
 	}
 
@@ -100,7 +128,7 @@ public class HTTPUDPSocket implements HTTPSocket {
 	}
 
 	public int getVersionRevision() {
-		return 0;
+		return 1;
 	}
 
 }

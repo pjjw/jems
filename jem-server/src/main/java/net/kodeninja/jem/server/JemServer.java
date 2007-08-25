@@ -1,14 +1,12 @@
 package net.kodeninja.jem.server;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,38 +14,59 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 import net.kodeninja.io.JARFilenameFilter;
 import net.kodeninja.jem.server.console.ConsoleInterface;
 import net.kodeninja.jem.server.console.LocalConsole;
 import net.kodeninja.jem.server.content.CustomMediaCollection;
-import net.kodeninja.jem.server.content.InvalidSearchTermException;
-import net.kodeninja.jem.server.content.MediaCollection;
-import net.kodeninja.jem.server.content.MediaItem;
-import net.kodeninja.jem.server.content.MediaUpdateHook;
-import net.kodeninja.jem.server.content.MetadataTypes;
-import net.kodeninja.jem.server.content.SearchRequest;
 import net.kodeninja.jem.server.content.transcoding.Transcoder;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.jem.server.storage.MemoryStorageModule;
+import net.kodeninja.jem.server.storage.Metadata;
+import net.kodeninja.jem.server.storage.MetadataType;
+import net.kodeninja.jem.server.storage.StorageModule;
+import net.kodeninja.jem.server.userinterface.Command;
+import net.kodeninja.jem.server.userinterface.Group;
+import net.kodeninja.jem.server.userinterface.Section;
 import net.kodeninja.scheduling.FIFOScheduler;
-import net.kodeninja.scheduling.Job;
-import net.kodeninja.scheduling.JobImpl;
 import net.kodeninja.scheduling.Scheduler;
 import net.kodeninja.util.KNModule;
+import net.kodeninja.util.KNModuleInitException;
 import net.kodeninja.util.KNRunnableModule;
+import net.kodeninja.util.KNServiceModule;
 import net.kodeninja.util.KNXMLModule;
-import net.kodeninja.util.KNXMLModuleInitException;
 import net.kodeninja.util.MimeType;
 import net.kodeninja.util.logging.FileLogger;
 import net.kodeninja.util.logging.LoggerCollection;
 import net.kodeninja.util.logging.LoggerHook;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
 public final class JemServer extends LoggerCollection {
+	private class StatusCommand implements Command {
+
+		public void activate(LoggerHook output, String[] args) {
+			Map<KNRunnableModule, Boolean> modules = JemServer.command().getModuleStatus();
+			output.addLog("Status:");
+			for (KNRunnableModule mod: modules.keySet())
+				output.addLog("  " + mod.getName() + " [" + (modules.get(mod) ? "Running" : "Stopped") + "]");
+		}
+
+		public String getDescription() {
+			return "Returns a list of the running modules.";
+		}
+
+		public String getTitle() {
+			return "Status";
+		}
+
+	}
+
 	public final class CommandClass {
 		JemServer owner;
 
@@ -68,7 +87,7 @@ public final class JemServer extends LoggerCollection {
 		public Map<KNRunnableModule, Boolean> getModuleStatus() {
 
 			Map<KNRunnableModule, Boolean> retVal = new HashMap<KNRunnableModule, Boolean>();
-			Iterator<KNRunnableModule> it = owner.services.iterator();
+			Iterator<KNRunnableModule> it = owner.runnables.iterator();
 			while (it.hasNext()) {
 				KNRunnableModule tmpJob = it.next();
 
@@ -76,51 +95,6 @@ public final class JemServer extends LoggerCollection {
 			}
 			return retVal;
 		}
-
-		public Iterator<MediaItem> searchMedia(SearchRequest query)
-				throws InvalidSearchTermException {
-			Set<MediaItem> retVal = new LinkedHashSet<MediaItem>();
-
-			Iterator<MediaItem> it = owner.getAllMedia();
-			while (it.hasNext()) {
-				MediaItem tmpMi = it.next();
-				if (tmpMi.matches(query))
-					retVal.add(tmpMi);
-			}
-			return retVal.iterator();
-		}
-	}
-
-	protected class MediaChangedJob extends JobImpl {
-		private Map<Job, Integer> mediaUpdaters = Collections
-				.synchronizedMap(new HashMap<Job, Integer>());
-
-		public MediaChangedJob() {
-			super(true, JemServer.getInstance().getScheduler());
-		}
-
-		@Override
-		public void run() {
-
-			if (mediaUpdaters.size() == 0) {
-				moveMedia();
-				stop();
-			} else {
-				Job j = (Job) mediaUpdaters.keySet().toArray()[0];
-				if (j.runId() != mediaUpdaters.get(j))
-					mediaUpdaters.remove(j);
-				super.run();
-			}
-		}
-
-		public boolean canRun() {
-			return true;
-		}
-
-		public boolean isUrgent() {
-			return false;
-		}
-
 	}
 
 	public static enum Statuses {
@@ -128,58 +102,64 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	private static final int HELPER_THREAD_COUNT = 4;
-	public CommandClass Commands = new CommandClass(this);
 
 	// Module Datatypes
-	private Map<String, KNModule> loadedModules = Collections
-			.synchronizedMap(new HashMap<String, KNModule>());
-	private Set<InterfaceHook> interfaces = Collections
-			.synchronizedSet(new HashSet<InterfaceHook>());
-	private Set<KNRunnableModule> services = Collections
-			.synchronizedSet(new HashSet<KNRunnableModule>());
-	private Set<Transcoder> transcoders = Collections
-			.synchronizedSet(new HashSet<Transcoder>());
-
-	// Media Datatypes
-	private Set<MediaCollection> mediaCollections = Collections
-			.synchronizedSet(new HashSet<MediaCollection>());
-	private Map<URI, MediaItem> media = Collections
-			.synchronizedMap(new HashMap<URI, MediaItem>());
-	private Map<URI, MediaItem> tmpMediaList = Collections
-			.synchronizedMap(new HashMap<URI, MediaItem>());
-	private Set<MediaUpdateHook> MediaUpdateHooks = Collections
-			.synchronizedSet(new HashSet<MediaUpdateHook>());
-	private MediaChangedJob mediaChanged;
+	private Map<String, KNModule> loadedModules = Collections.synchronizedMap(new HashMap<String, KNModule>());
+	private Set<InterfaceHook> interfaces = Collections.synchronizedSet(new HashSet<InterfaceHook>());
+	private Set<KNRunnableModule> runnables = Collections.synchronizedSet(new HashSet<KNRunnableModule>());
+	private Set<KNServiceModule> services = Collections.synchronizedSet(new LinkedHashSet<KNServiceModule>());
+	private Set<Transcoder> transcoders = Collections.synchronizedSet(new HashSet<Transcoder>());
+	private Set<Group> uiGroups = Collections.synchronizedSet(new LinkedHashSet<Group>());
 
 	// System Datatypes
 	protected static JemServer instance;
+	protected Scheduler sched = new FIFOScheduler(HELPER_THREAD_COUNT);
+	protected StorageModule storage;
+	protected CommandClass commands = new CommandClass(this);
+	protected URLClassLoader classLoader = null;
+
+	// System Status
 	private Statuses Status = Statuses.Starting;
 	private boolean errorFlag = false;
-	protected URLClassLoader classLoader = null;
-	protected Scheduler sched = new FIFOScheduler(HELPER_THREAD_COUNT);
+
 
 	private JemServer() {
+		//Set instance
 		instance = this;
-		File[] plugins = (new File("plugins/"))
-				.listFiles(new JARFilenameFilter());
+
+		//Enumerate plugin directories
+		File[] pluginsHome = (new File(System.getProperty("user.home") + "/.jems/plugins/")).listFiles(new JARFilenameFilter());
+		File[] pluginsWorking = (new File(System.getProperty("user.dir") + "/plugins/")).listFiles(new JARFilenameFilter());
+		Vector<URL> urlVector = new Vector<URL>();
+
 		URL[] pluginsURLs;
 
-		if (plugins != null) {
-			pluginsURLs = new URL[plugins.length];
-
-			for (int i = 0; i < plugins.length; i++)
+		if (pluginsWorking != null) {
+			for (File pluginPath: pluginsWorking) {
 				try {
-					pluginsURLs[i] = plugins[i].toURI().toURL();
+					urlVector.add(pluginPath.toURI().toURL());
 				} catch (MalformedURLException e) {
 					e.printStackTrace();
 				}
+			}
+		}
+		if (pluginsHome != null) {
+			for (File pluginPath: pluginsHome) {
+				try {
+					urlVector.add(pluginPath.toURI().toURL());
+				} catch (MalformedURLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 
-		} else
-			pluginsURLs = new URL[0];
+		pluginsURLs = new URL[urlVector.size()];
+		urlVector.toArray(pluginsURLs);
 
-		classLoader = new URLClassLoader(pluginsURLs, ClassLoader
-				.getSystemClassLoader());
-		mediaChanged = new MediaChangedJob();
+		classLoader = new URLClassLoader(pluginsURLs, ClassLoader.getSystemClassLoader());
+
+		//Init storage module
+		storage = new MemoryStorageModule();
 	}
 
 	public static JemServer getInstance() {
@@ -188,11 +168,73 @@ public final class JemServer extends LoggerCollection {
 		return instance;
 	}
 
-	public static InputStream getResourceAsStream(String name) {
-		return getInstance().classLoader.getResourceAsStream(name);
+	public static StorageModule getMediaStorage() {
+		return getInstance().storage;
 	}
 
-	public boolean start() {
+	public static String getMediaName(MediaItem mi) {
+		String result = "";
+
+		String artist = null;
+		String title = null;
+
+		for (Metadata md: mi.getMetadataList()) {
+
+			if ((title == null) && (md.getType().equals(MetadataType.Title)))
+				title = md.getValue();
+			else if ((artist == null) && (md.getType().equals(MetadataType.Artist)))
+				artist = md.getValue();
+
+			if ((artist != null) && (title != null))
+				break;
+		}
+
+		if (title != null) {
+			result = title;
+			if (artist != null)
+				result = artist + " - " + title;
+		}
+
+		if (result.equals("")) {
+			result = mi.getURI().toString();
+			result = result.substring(result.lastIndexOf("/"));
+		}
+
+		return result;
+	}
+
+	public static CommandClass command() {
+		return instance.commands;
+	}
+
+	public static URL getResource(String name) {
+		File res = new File("override" + File.separatorChar + name);
+
+		if (res.exists()) {
+			try {
+				return res.toURI().toURL();
+			} catch (MalformedURLException e) {
+				// Shouldn't ever happen
+			}
+		}
+
+		return getInstance().classLoader.getResource(name);
+	}
+
+	public static InputStream getResourceAsStream(String name) throws FileNotFoundException {
+		URL url = getResource(name); 
+
+		if (url == null)
+			throw new FileNotFoundException(name);
+
+		try {
+			return url.openStream();
+		} catch (IOException e) {
+			throw new FileNotFoundException(name + " (Error occured while opening file)");
+		}
+	}
+
+	private boolean start() {
 		if (getStatus().equals(Statuses.Exiting))
 			return false;
 
@@ -200,8 +242,8 @@ public final class JemServer extends LoggerCollection {
 		return true;
 	}
 
-	public Scheduler getScheduler() {
-		return sched;
+	public static Scheduler getScheduler() {
+		return instance.sched;
 	}
 
 	public URLClassLoader getClassLoader() {
@@ -226,97 +268,23 @@ public final class JemServer extends LoggerCollection {
 
 	public void addInterface(String name, InterfaceHook Interface) {
 		interfaces.add(Interface);
-		services.add(Interface);
+		runnables.add(Interface);
 		Interface.start();
 		loadedModules.put(name, Interface);
 	}
 
-	public void addMediaUpdateHook(MediaUpdateHook h) {
-		MediaUpdateHooks.add(h);
+	public synchronized void addUIGroup(Group g) {
+		uiGroups.add(g);
 	}
 
-	public void removeMediaUpdateHook(MediaUpdateHook h) {
-		MediaUpdateHooks.remove(h);
+	public synchronized void removeUIGroup(Group g) {
+		uiGroups.remove(g);
 	}
 
-	public Iterator<MediaCollection> getCollections() {
-		return mediaCollections.iterator();
-	}
-
-	public int getCollectionCount() {
-		return mediaCollections.size();
-	}
-
-	public void addCollection(MediaCollection mc) {
-		setupCollection(mc);
-		mediaCollections.add(mc);
-	}
-
-	public void setupCollection(MediaCollection mc) {
-		Iterator<MediaItem> it = getAllMedia();
-		while (it.hasNext())
-			mc.addMedia(it.next());
-	}
-
-	public Iterator<MediaItem> getAllMedia() {
-		return media.values().iterator();
-	}
-
-	public int getMediaCount() {
-		return media.size();
-	}
-
-	private synchronized void moveMedia() {
-		if (tmpMediaList.size() > 0) {
-			System.out.println("Announcing media change!");
-			Iterator<MediaItem> mIt = tmpMediaList.values().iterator();
-			while (mIt.hasNext()) {
-				MediaItem mi = mIt.next();
-				media.put(mi.getMediaURI(), mi);
-				if (mi.getMetadata(MetadataTypes.DateAdded) == null)
-					mi.setMetadata(MetadataTypes.DateAdded, ""
-							+ Calendar.getInstance().getTime().getTime());
-
-				Iterator<MediaCollection> cIt = getCollections();
-				while (cIt.hasNext())
-					cIt.next().addMedia(mi);
-			}
-
-			Iterator<MediaUpdateHook> it = MediaUpdateHooks.iterator();
-			while (it.hasNext())
-				it.next().mediaChanged();
-
-			System.gc();
-		}
-	}
-
-	public synchronized void startMediaUpdate(Job j) {
-		mediaChanged.mediaUpdaters.put(j, j.runId());
-		mediaChanged.start();
-	}
-
-	public synchronized boolean addMedia(MediaItem mi) {
-		if (mi == null)
-			return false;
-
-		if ((media.containsKey(mi.getMediaURI()) == false)
-				&& (tmpMediaList.containsKey(mi.getMediaURI()) == false)) {
-			tmpMediaList.put(mi.getMediaURI(), mi);
-			return true;
-		}
-		return false;
-	}
-
-	public boolean removeMedia(MediaItem mi) {
-		return (media.remove(mi.getMediaURI()) != null);
-	}
-	
-	public boolean removeMedia(Collection<URI> miList) {
-		return (media.remove(miList) != null);
-	}
-
-	public MediaItem getMedia(URI mi) {
-		return media.get(mi);
+	public synchronized Set<Group> getUIGroups() {
+		Set<Group> result = new LinkedHashSet<Group>();
+		result.addAll(uiGroups);
+		return result;
 	}
 
 	public InputStream requestTranscode(MimeType from, MimeType to,
@@ -334,27 +302,11 @@ public final class JemServer extends LoggerCollection {
 		return errorFlag;
 	}
 
-	public int getVersionMajor() {
-		return 0;
-	}
-
-	public int getVersionMinor() {
-		return 3;
-	}
-
-	public int getVersionRevision() {
-		return 0;
-	}
-
-	public String getName() {
-		return "Java Extendable Media Server";
-	}
-
 	protected void parseConfiguration(Node root)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		// Run through all the root's childern
 		for (Node sectionNode = root.getFirstChild(); sectionNode != null; sectionNode = sectionNode
-				.getNextSibling()) {
+		.getNextSibling()) {
 			if (sectionNode.getNodeType() != Node.ELEMENT_NODE)
 				continue;
 			String nodeName = sectionNode.getNodeName();
@@ -362,7 +314,7 @@ public final class JemServer extends LoggerCollection {
 			// Code to handle the modules section
 			if (nodeName.equals("modules"))
 				for (Node moduleNode = sectionNode.getFirstChild(); moduleNode != null; moduleNode = moduleNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (moduleNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (moduleNode.getNodeName().equals("module"))
@@ -372,14 +324,14 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed module entry: "
-										+ moduleNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed module entry: "
+									+ moduleNode.getNodeName());
 				}
 			else if (nodeName.equals("services"))
 				for (Node serviceNode = sectionNode.getFirstChild(); serviceNode != null; serviceNode = serviceNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (serviceNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (serviceNode.getNodeName().equals("service"))
@@ -389,14 +341,14 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed service entry: "
-										+ serviceNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed service entry: "
+									+ serviceNode.getNodeName());
 				}
 			else if (nodeName.equals("loggers"))
 				for (Node loggerNode = sectionNode.getFirstChild(); loggerNode != null; loggerNode = loggerNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (loggerNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (loggerNode.getNodeName().equals("logger"))
@@ -406,14 +358,14 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed logger entry: "
-										+ loggerNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed logger entry: "
+									+ loggerNode.getNodeName());
 				}
 			else if (nodeName.equals("interfaces"))
 				for (Node interfaceNode = sectionNode.getFirstChild(); interfaceNode != null; interfaceNode = interfaceNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (interfaceNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (interfaceNode.getNodeName().equals("interface"))
@@ -423,14 +375,14 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed interface entry: "
-										+ interfaceNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed interface entry: "
+									+ interfaceNode.getNodeName());
 				}
 			else if (nodeName.equals("transcoders"))
 				for (Node transcoderNode = sectionNode.getFirstChild(); transcoderNode != null; transcoderNode = transcoderNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (transcoderNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (transcoderNode.getNodeName().equals("transcoder"))
@@ -440,14 +392,14 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed transcoder entry: "
-										+ transcoderNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed transcoder entry: "
+									+ transcoderNode.getNodeName());
 				}
 			else if (nodeName.equals("media"))
 				for (Node moduleNode = sectionNode.getFirstChild(); moduleNode != null; moduleNode = moduleNode
-						.getNextSibling()) {
+				.getNextSibling()) {
 					if (moduleNode.getNodeType() != Node.ELEMENT_NODE)
 						continue;
 					if (moduleNode.getNodeName().equals("collection"))
@@ -457,10 +409,10 @@ public final class JemServer extends LoggerCollection {
 							System.err.println("Error while reading config: "
 									+ e.toString());
 						}
-					else
-						throw new JemMalformedConfigurationException(
-								"Invalid config file. Malformed media entry: "
-										+ moduleNode.getNodeName());
+						else
+							throw new JemMalformedConfigurationException(
+									"Invalid config file. Malformed media entry: "
+									+ moduleNode.getNodeName());
 				}
 			else
 				System.out.println("Invalid config file. Unreconized key: "
@@ -469,11 +421,11 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	protected void initModule(Node module)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node nameAttr = module.getAttributes().getNamedItem("name");
 		if ((nameAttr == null) || (nameAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Unnamed module found! All modules must have names.");
+			"Unnamed module found! All modules must have names.");
 		String modName = nameAttr.getNodeValue();
 
 		Node classAttr = module.getAttributes().getNamedItem("class");
@@ -496,7 +448,7 @@ public final class JemServer extends LoggerCollection {
 		} catch (InstantiationException e) {
 			throw new JemMalformedConfigurationException(
 					"An error occured while attempting to load the module: "
-							+ modName);
+					+ modName);
 		}
 
 		if (!(o instanceof KNXMLModule))
@@ -505,13 +457,18 @@ public final class JemServer extends LoggerCollection {
 		else
 			mod = (KNXMLModule) o;
 
+		if (mod instanceof KNServiceModule) {
+			KNServiceModule s = (KNServiceModule)o;
+			services.add(s);
+		}
+
 		if (loadedModules.containsKey(modName))
 			throw new JemMalformedConfigurationException(
 					"A module with the name '" + modName + "' allready exists.");
 
 		try {
 			mod.xmlInit(module);
-		} catch (KNXMLModuleInitException e) {
+		} catch (KNModuleInitException e) {
 			throw new JemMalformedConfigurationException(e.getMessage());
 		}
 
@@ -522,11 +479,11 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	protected void initService(Node service)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node modAttr = service.getAttributes().getNamedItem("module");
 		if ((modAttr == null) || (modAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Service found without module reference found! All services must reference a module name.");
+			"Service found without module reference found! All services must reference a module name.");
 		String modName = modAttr.getNodeValue();
 
 		KNModule tmpModule = loadedModules.get(modName);
@@ -540,15 +497,15 @@ public final class JemServer extends LoggerCollection {
 			throw new JemMalformedConfigurationException("'" + modName
 					+ "' is not a valid service.");
 
-		services.add(((KNRunnableModule) tmpModule));
+		runnables.add(((KNRunnableModule) tmpModule));
 	}
 
 	protected void initLogger(Node logger)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node modAttr = logger.getAttributes().getNamedItem("module");
 		if ((modAttr == null) || (modAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Logger found without module reference found! All loggers must reference a module name.");
+			"Logger found without module reference found! All loggers must reference a module name.");
 		String modName = modAttr.getNodeValue();
 
 		KNModule tmpModule = loadedModules.get(modName);
@@ -564,11 +521,11 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	protected void initInterface(Node userInterface)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node modAttr = userInterface.getAttributes().getNamedItem("module");
 		if ((modAttr == null) || (modAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Interface found without module reference found! All interfaces must reference a module name.");
+			"Interface found without module reference found! All interfaces must reference a module name.");
 		String modName = modAttr.getNodeValue();
 
 		KNModule tmpModule = loadedModules.get(modName);
@@ -578,7 +535,7 @@ public final class JemServer extends LoggerCollection {
 
 		if (tmpModule instanceof InterfaceHook) {
 			interfaces.add((InterfaceHook) tmpModule);
-			services.add((InterfaceHook) tmpModule);
+			runnables.add((InterfaceHook) tmpModule);
 			((InterfaceHook) tmpModule).start();
 		} else
 			throw new JemMalformedConfigurationException("'" + modName
@@ -586,11 +543,11 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	protected void initTranscoder(Node transcoder)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node modAttr = transcoder.getAttributes().getNamedItem("module");
 		if ((modAttr == null) || (modAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Logger found without module reference found! All loggers must reference a module name.");
+			"Logger found without module reference found! All loggers must reference a module name.");
 		String modName = modAttr.getNodeValue();
 
 		KNModule tmpModule = loadedModules.get(modName);
@@ -606,11 +563,11 @@ public final class JemServer extends LoggerCollection {
 	}
 
 	protected void initCollection(Node collection)
-			throws JemMalformedConfigurationException {
+	throws JemMalformedConfigurationException {
 		Node nameAttr = collection.getAttributes().getNamedItem("name");
 		if ((nameAttr == null) || (nameAttr.getNodeValue().trim().equals("")))
 			throw new JemMalformedConfigurationException(
-					"Unnamed module found! All modules must have names.");
+			"Unnamed module found! All modules must have names.");
 		String collectionName = nameAttr.getNodeValue();
 
 		Node classAttr = collection.getAttributes().getNamedItem("class");
@@ -630,11 +587,11 @@ public final class JemServer extends LoggerCollection {
 		} catch (IllegalAccessException e) {
 			throw new JemMalformedConfigurationException(
 					"Permission denied attempting to load collection module: "
-							+ collectionName);
+					+ collectionName);
 		} catch (InstantiationException e) {
 			throw new JemMalformedConfigurationException(
 					"Unable to create collection (Invalid construction signature): "
-							+ collectionName);
+					+ collectionName);
 		}
 
 		if (!(o instanceof CustomMediaCollection))
@@ -645,13 +602,23 @@ public final class JemServer extends LoggerCollection {
 
 		try {
 			mediaCollection.xmlInit(collection);
-		} catch (KNXMLModuleInitException e) {
+		} catch (KNModuleInitException e) {
 			throw new JemMalformedConfigurationException(e.getMessage());
 		}
 		addLog("[" + mediaCollection.getName() + "] Loaded collection: "
 				+ mediaCollection.getCollectionName());
 
-		addCollection(mediaCollection);
+		JemServer.getMediaStorage().addCollection(mediaCollection);
+	}
+
+	private void initUI() {
+		Group serverGroup = new Group("Main", "JEMS Configuration");
+		Section serverSection = new Section("Main", "JEMS Configuration");
+		serverGroup.addSection(serverSection);
+
+		serverSection.addCommand(new StatusCommand());
+
+		addUIGroup(serverGroup);
 	}
 
 	protected boolean initAll() {
@@ -666,39 +633,80 @@ public final class JemServer extends LoggerCollection {
 		try {
 
 			DocumentBuilder builder = factory.newDocumentBuilder();
-			configFile = builder.parse(new File("JemsConfig.xml"));
+			File configPath = new File(System.getProperty("user.home") + "/.jems/JemsConfig.xml");
+			if (configPath.exists() == false)
+				configPath = new File(System.getProperty("user.dir") + "/JemsConfig.xml");
+
+			configFile = builder.parse(configPath);
 
 			// Find the root key
 			if (configFile.getDocumentElement().getNodeName().equals("jems") != true)
 				throw new Exception(
 						"Invalid config file. Root node should be 'jems', got '"
-								+ configFile.getDocumentElement().getNodeName()
-								+ "'.");
+						+ configFile.getDocumentElement().getNodeName()
+						+ "'.");
 
 			parseConfiguration(configFile.getDocumentElement());
-			moveMedia();
 		} catch (Throwable e) {
 			e.printStackTrace();
-			Commands.exception();
+			commands.exception();
 		}
 
 		// Set status as running
 		setStatus(Statuses.Running);
 
+		if (!errorFlag) {
+			for (KNServiceModule s: services) {
+				try {
+					s.init();
+				}
+				catch (KNModuleInitException e) {
+					e.printStackTrace();
+				}
+			}
+
+			initUI();
+		}
+
 		return !errorFlag;
 	}
 
-	public void deinit() {
-		Commands.shutdown();
+	private void deinit() {
+		commands.shutdown();
+
+		for (KNServiceModule s: services) {
+			try {
+				s.deinit();
+			}
+			catch (KNModuleInitException e) {
+				e.printStackTrace();
+			}
+		}
 
 		// Stop all services
-		for (KNRunnableModule service : services)
+		for (KNRunnableModule service : runnables)
 			service.stop();
 
 		addLog("Server Stopped");
 		if (errorFlag == true)
 			addLog("Server exited due to error");
 		addLog("Server exited normally\n");
+	}
+
+	public int getVersionMajor() {
+		return 0;
+	}
+
+	public int getVersionMinor() {
+		return 2;
+	}
+
+	public int getVersionRevision() {
+		return 0;
+	}
+
+	public String getName() {
+		return "Java Extendable Media Server";
 	}
 
 	public static void main(String[] args) {
@@ -714,11 +722,17 @@ public final class JemServer extends LoggerCollection {
 
 		app.initAll();
 
+		Runtime.getRuntime().addShutdownHook(
+				new Thread() {
+					public void run() {
+						// Interface called for quit, log and exit program.
+						JemServer.getInstance().deinit();
+					}
+				}
+		);
+
 		if (app.start() == false)
 			app.addLog("Error occured during startup.");
-
-		// Interface called for quit, log and exit program.
-		app.deinit();
 
 		if (app.hasError())
 			System.exit(-1);

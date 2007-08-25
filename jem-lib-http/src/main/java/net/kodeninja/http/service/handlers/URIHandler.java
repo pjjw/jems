@@ -1,7 +1,6 @@
 package net.kodeninja.http.service.handlers;
 
 import net.kodeninja.http.packet.HTTPBody;
-import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 import net.kodeninja.http.service.HTTPSocket;
 
@@ -15,6 +14,6 @@ public interface URIHandler {
 	 *            The actual packet to process.
 	 * @return Returns success.
 	 */
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet);
+	public HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet);
 }

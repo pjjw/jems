@@ -13,13 +13,13 @@ import net.kodeninja.jem.server.InterfaceHook;
 import net.kodeninja.jem.server.JemServer;
 import net.kodeninja.scheduling.JobImpl;
 import net.kodeninja.util.KNXMLModule;
-import net.kodeninja.util.KNXMLModuleInitException;
+import net.kodeninja.util.KNModuleInitException;
 import net.kodeninja.util.logging.LoggerHook;
 
 public class TelnetConsole extends JobImpl implements InterfaceHook,
 		LoggerHook, KNXMLModule {
 	public TelnetConsole() {
-		super(true, JemServer.getInstance().getScheduler());
+		super(true, JemServer.getScheduler());
 	}
 
 	protected Set<TelnetConsoleChild> childern = new HashSet<TelnetConsoleChild>();
@@ -29,7 +29,7 @@ public class TelnetConsole extends JobImpl implements InterfaceHook,
 	private ServerSocket socket = null;
 	private String localName = "";
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		localName = xmlNode.getAttributes().getNamedItem("name").getNodeValue();
 		for (Node modNode = xmlNode.getFirstChild(); modNode != null; modNode = modNode
 				.getNextSibling()) {
@@ -41,10 +41,10 @@ public class TelnetConsole extends JobImpl implements InterfaceHook,
 					try {
 						port = Integer.parseInt(portString);
 					} catch (NumberFormatException e) {
-						throw new KNXMLModuleInitException("Invalid port.");
+						throw new KNModuleInitException("Invalid port.");
 					}
 				else
-					throw new KNXMLModuleInitException("Invalid port.");
+					throw new KNModuleInitException("Invalid port.");
 			}
 		}
 	}
@@ -61,7 +61,7 @@ public class TelnetConsole extends JobImpl implements InterfaceHook,
 					.addLog(
 							getName() + " caught exception while starting: "
 									+ e.toString());
-			JemServer.getInstance().Commands.exception();
+			JemServer.command().exception();
 		}
 		JemServer.getInstance().addLog(
 										getName() + " started. (Port: "
@@ -105,7 +105,7 @@ public class TelnetConsole extends JobImpl implements InterfaceHook,
 			JemServer.getInstance().addLog(
 											getName() + " caught exception: "
 													+ e.toString());
-			JemServer.getInstance().Commands.exception();
+			JemServer.command().exception();
 		}
 
 		for (TelnetConsoleChild tmpChild : childern)

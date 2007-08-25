@@ -15,14 +15,12 @@ import net.kodeninja.util.MimeType;
 public class HTTPGZipBody implements HTTPEncodedBody {
 
 	protected ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-	protected MimeType mime;
-
-	public HTTPGZipBody(MimeType m) {
-		mime = m;
-	}
+	protected HTTPBody base;
+	protected boolean compression = true;
 
 	public HTTPGZipBody(HTTPBody b) {
-		mime = b.getMimeType();
+		base = b;
+		compression = b.forceCompression();
 		try {
 			GZIPOutputStream stream = new GZIPOutputStream(buffer);
 			b.writeToStream(stream);
@@ -37,7 +35,11 @@ public class HTTPGZipBody implements HTTPEncodedBody {
 	}
 
 	public MimeType getMimeType() {
-		return mime;
+		return base.getMimeType();
+	}
+	
+	public String getContentType() {
+		return base.getContentType();
 	}
 
 	public void readFromUnencodedStream(InputStream in, int ContentLength)
@@ -66,4 +68,12 @@ public class HTTPGZipBody implements HTTPEncodedBody {
 		buffer.writeTo(out);
 	}
 
+	public boolean forceCompression() {
+		return compression;
+	}
+	
+	public boolean forceChunked() {
+		return true;
+	}
+	
 }

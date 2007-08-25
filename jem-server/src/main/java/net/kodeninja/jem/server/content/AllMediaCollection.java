@@ -1,13 +1,14 @@
 package net.kodeninja.jem.server.content;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
+
+import net.kodeninja.jem.server.storage.MediaItem;
 
 public class AllMediaCollection extends CustomMediaCollectionImpl {
 
-	protected Set<MediaItem> mediaList = Collections
-			.synchronizedSet(new TreeSet<MediaItem>());
+	protected Set<MediaItem> mediaList = Collections.synchronizedSet(new HashSet<MediaItem>());
 
 	public boolean acceptMedia(MediaItem media) {
 		return true;

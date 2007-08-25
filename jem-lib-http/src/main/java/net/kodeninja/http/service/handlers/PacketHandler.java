@@ -1,7 +1,8 @@
 package net.kodeninja.http.service.handlers;
 
+import java.io.IOException;
+
 import net.kodeninja.http.packet.HTTPBody;
-import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 import net.kodeninja.http.service.HTTPSocket;
 
@@ -16,5 +17,6 @@ public interface PacketHandler {
 	 * @return Returns success.
 	 */
 	public boolean process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet);
+			HTTPPacket<HTTPBody> Packet)
+			throws IOException;
 }

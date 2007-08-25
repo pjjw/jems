@@ -1,15 +1,17 @@
 package net.kodeninja.jem.server.DMAP.content;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.TreeSet;
 
-import net.kodeninja.jem.server.content.MediaCollection;
-import net.kodeninja.jem.server.content.MediaItem;
+import net.kodeninja.jem.server.JemServer;
+import net.kodeninja.jem.server.storage.MediaCollection;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.util.MimeType;
 
 public class DMAPMediaCollection implements MediaCollection {
 	public static final String DEFAULT_NAME = "DAAP Media Collection";
-	protected Set<MediaItem> mediaSet = new TreeSet<MediaItem>();
+	protected Set<MediaItem> mediaSet = new HashSet<MediaItem>();
 	protected String collectionName;
 	protected String collectionType;
 	protected MediaCollection collectionBase = null;
@@ -40,23 +42,19 @@ public class DMAPMediaCollection implements MediaCollection {
 	}
 
 	public boolean acceptMedia(MediaItem media) {
+		MimeType mime = JemServer.getMediaStorage().getMimeType(media);
 		if ((collectionBase == null) || (collectionBase.acceptMedia(media))) {
-			if ((collectionType.equals("all"))
-					&& (media.getMediaMimeType().getPrimaryType().toLowerCase()
-							.equals("video")
-							|| media.getMediaMimeType().getPrimaryType()
-							.toLowerCase().equals("audio") || media
-							.getMediaMimeType().getPrimaryType().toLowerCase()
-							.equals("image")))
+			if ((collectionType.equals("all")) &&
+					(mime.getPrimaryType().equalsIgnoreCase("video") ||
+					 mime.getPrimaryType().equalsIgnoreCase("audio") ||
+					 mime.getPrimaryType().equalsIgnoreCase("image")))
 				return true;
-			else if ((collectionType.equals("music"))
-					&& ((media.getMediaMimeType().getPrimaryType().toLowerCase()
-							.equals("video")) || (media.getMediaMimeType()
-									.getPrimaryType().toLowerCase().equals("audio"))))
+			else if ((collectionType.equals("music")) &&
+					((mime.getPrimaryType().equalsIgnoreCase("video")) ||
+					 (mime.getPrimaryType().equalsIgnoreCase("audio"))))
 				return true;
-			else if ((collectionType.equals("photo"))
-					&& (media.getMediaMimeType().getPrimaryType().toLowerCase()
-							.equals("image")))
+			else if ((collectionType.equals("photo")) &&
+					 (mime.getPrimaryType().equalsIgnoreCase("image")))
 				return true;
 		}
 		return false;

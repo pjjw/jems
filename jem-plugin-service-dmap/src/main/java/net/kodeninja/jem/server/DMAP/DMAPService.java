@@ -26,11 +26,11 @@ import net.kodeninja.jem.server.DMAP.responses.MediaRequestURI;
 import net.kodeninja.jem.server.DMAP.responses.PlaylistListURI;
 import net.kodeninja.jem.server.DMAP.responses.ServerInfoURI;
 import net.kodeninja.jem.server.DMAP.responses.UpdateURI;
-import net.kodeninja.jem.server.content.MediaItem;
-import net.kodeninja.jem.server.content.MediaUpdateHook;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.jem.server.storage.MediaUpdateHook;
 import net.kodeninja.util.KNRunnableModule;
 import net.kodeninja.util.KNXMLModule;
-import net.kodeninja.util.KNXMLModuleInitException;
+import net.kodeninja.util.KNModuleInitException;
 import net.kodeninja.util.MalformedMimeTypeException;
 import net.kodeninja.util.MimeType;
 
@@ -46,10 +46,10 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 	private LinkedList<MimeType> transcodingTypes = new LinkedList<MimeType>();
 
 	public DMAPService() {
-		super(JemServer.getInstance().getScheduler(), DAAP_PORT);
+		super(JemServer.getScheduler(), DAAP_PORT);
 	}
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		for (Node modNode = xmlNode.getFirstChild(); modNode != null; modNode = modNode
 				.getNextSibling()) {
 			if (modNode.getNodeType() != Node.ELEMENT_NODE)
@@ -62,32 +62,36 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 					try {
 						setPort(Integer.parseInt(portString));
 					} catch (NumberFormatException e) {
-						throw new KNXMLModuleInitException("Invalid port.");
+						throw new KNModuleInitException("Invalid port.");
 					}
 				else
-					throw new KNXMLModuleInitException("Invalid port.");
+					throw new KNModuleInitException("Invalid port.");
 			} else if (modNode.getNodeName().equals("transcode"))
 				try {
 					MimeType m = new MimeType(modNode.getTextContent());
 					transcodingTypes.add(m);
 				} catch (MalformedMimeTypeException e) {
-					throw new KNXMLModuleInitException(
+					throw new KNModuleInitException(
 							"Invalid transcode target mimetype: "
 									+ modNode.getTextContent());
 				}
 		}
+		mediaChanged();
 	}
 
 	@Override
 	public void start() {
 		if (isStarted() == false) {
-			JemServer.getInstance().addMediaUpdateHook(this);
+			
+			JemServer.getMediaStorage().hookMediaUpdate(this);
 
 			// Setup logger for server
 			addLogger(JemServer.getInstance());
 
 			// The main get handler
 			GetHandler getter = new GetHandler();
+			getter.enableChunked(false);
+			getter.enableCompression(true);
 
 			// Add handlers to server
 			getTransport().addHandler(getter);
@@ -114,8 +118,9 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 			getter.addURIHandler(plURI);
 			getter.addURIHandler(mrURI);
 
-			JemServer.getInstance().addMediaUpdateHook(upURI);
-			JemServer.getInstance().addMediaUpdateHook(dlURI);
+			// Add URI class hooks
+			JemServer.getMediaStorage().hookMediaUpdate(upURI);
+			JemServer.getMediaStorage().hookMediaUpdate(dlURI);
 
 			// Set to 1800 seconds, the itunes default
 			getTransport().setTimeout(1800000);
@@ -147,7 +152,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 
 			if ((daapReg == null) || (dpapReg == null)) {
 				addLog(getName() + ": Error registering service with DNS-SD.");
-				JemServer.getInstance().Commands.exception();
+				JemServer.command().exception();
 				return;
 			}
 
@@ -181,7 +186,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 
 	public void operationFailed(DNSSDService service, int errorCode) {
 		addLog("[" + getName() + "] DNS-SD Error Code: " + errorCode);
-		JemServer.getInstance().Commands.exception();
+		JemServer.command().exception();
 	}
 
 	public String getServerName() {
@@ -203,7 +208,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 	public synchronized void mediaChanged() {
 		mediaRevision++;
 		DMAPMediaCollection tmpCol = new DMAPMediaCollection("all");
-		JemServer.getInstance().setupCollection(tmpCol);
+		JemServer.getMediaStorage().setupCollection(tmpCol);
 		revisions.put(new Integer(mediaRevision), tmpCol);
 	}
 
@@ -217,7 +222,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 
 	public boolean transcodeItem(MediaItem mi) {
 		for (MimeType m : transcodingTypes)
-			if (m.equals(mi.getMediaMimeType()))
+			if (m.equals(JemServer.getMediaStorage().getMimeType(mi)))
 				return true;
 		return false;
 	}
@@ -226,20 +231,19 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 
 		InputStream retVal = null;
 		try {
-			retVal = mi.getMediaURI().toURL().openStream();
+			retVal = mi.getURI().toURL().openStream();
+			MimeType mimetype = JemServer.getMediaStorage().getMimeType(mi);
 
 			if (transcodeItem(mi)) {
 				MimeType destType = MimeType.WILDCARD;
-				if (mi.getMediaMimeType().getPrimaryType().equals("video")
-						|| mi.getMediaMimeType().getPrimaryType()
-								.equals("audio"))
-					destType = new MimeType("video", "mpeg");
-				else if (mi.getMediaMimeType().getPrimaryType().equals("image"))
+				if (mimetype.getPrimaryType().equals("video"))
+					destType = new MimeType("video", "mov");
+				else if (mimetype.getPrimaryType().equals("audio"))
+					destType = new MimeType("audio", "mpeg");
+				else if (mimetype.getPrimaryType().equals("image"))
 					destType = new MimeType("image", "jpeg");
 
-				InputStream transRetVal = JemServer.getInstance()
-						.requestTranscode(mi.getMediaMimeType(), destType,
-											retVal);
+				InputStream transRetVal = JemServer.getInstance().requestTranscode(mimetype, destType, retVal);
 				if (transRetVal != null)
 					retVal = transRetVal;
 			}

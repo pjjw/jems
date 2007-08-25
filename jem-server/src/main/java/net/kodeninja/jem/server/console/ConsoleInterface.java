@@ -4,28 +4,28 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 import net.kodeninja.jem.server.InterfaceHook;
 import net.kodeninja.jem.server.JemServer;
-import net.kodeninja.jem.server.content.InvalidSearchTermException;
-import net.kodeninja.jem.server.content.MediaItem;
-import net.kodeninja.jem.server.content.RegExSearchRequest;
-import net.kodeninja.jem.server.content.SearchRequest;
-import net.kodeninja.jem.server.content.SimpleSearchRequest;
+import net.kodeninja.jem.server.userinterface.Command;
+import net.kodeninja.jem.server.userinterface.Group;
+import net.kodeninja.jem.server.userinterface.Option;
+import net.kodeninja.jem.server.userinterface.Section;
 import net.kodeninja.scheduling.JobImpl;
-import net.kodeninja.util.KNRunnableModule;
 import net.kodeninja.util.logging.LoggerHook;
 
 abstract public class ConsoleInterface extends JobImpl implements LoggerHook,
-		InterfaceHook {
+InterfaceHook {
 	protected Scanner input;
 	protected PrintStream output;
 	protected InputStream inStream;
+	protected Group group = null;
+	protected Section section = null;
 
 	public ConsoleInterface(InputStream in, PrintStream out) {
-		super(true, JemServer.getInstance().getScheduler());
+		super(true, JemServer.getScheduler());
 		inStream = in;
 		input = new Scanner(inStream);
 		output = out;
@@ -53,101 +53,149 @@ abstract public class ConsoleInterface extends JobImpl implements LoggerHook,
 
 				line = line.trim().toLowerCase();
 
-				// Process the input
-				// Help command
-				if (line.equals("help")) {
-					addLog(JemServer.getInstance().getName() + " "
-							+ JemServer.getInstance().getVersionMajor() + "."
-							+ JemServer.getInstance().getVersionMinor() + "."
-							+ JemServer.getInstance().getVersionRevision()
-							+ " - Command Help");
-					addLog("  help			Shows this message");
-					addLog("  status		Shows the current status of the server");
-					addLog("  search		Searchs the entire media collection for the search term.");
-					addLog("  search-r		Searchs the entire media collection for the regular expression search term.");
-					addLog("  quit,exit		Exits the console");
-					addLog("  shutdown		Halts the server");
-				}
-				// Status command
-				else if (line.equals("status")) {
-					Map<KNRunnableModule, Boolean> moduleStatus = JemServer
-							.getInstance().Commands.getModuleStatus();
-					Iterator<KNRunnableModule> it = moduleStatus.keySet()
-							.iterator();
-					KNRunnableModule tmpModule;
-
-					String status = "Unknown";
-					if (JemServer.getInstance().getStatus() == JemServer.Statuses.Starting)
-						status = "Starting";
-					else if (JemServer.getInstance().getStatus() == JemServer.Statuses.Running)
-						status = "Running";
-					addLog("Global Server Status: " + status);
-
-					while (it.hasNext()) {
-						tmpModule = it.next();
-						addLog(tmpModule.getName()
-								+ " Status: "
-								+ ((moduleStatus.get(tmpModule) == true) ? "Running"
-										: "Stopped"));
+				if (line.equals("") == false) { 
+					if (line.equals("shutdown")) {
+						JemServer.command().shutdown();
 					}
-				}
-				// Search command
-				else if (line.equals("search"))
-					addLog("Please specify a search term.");
-				else if ((line.startsWith("search "))
-						|| (line.startsWith("search-r "))) {
-					String searchTerm = line.substring(line.indexOf(" ") + 1);
-					int resultCounter = 0;
-
-					try {
-						SearchRequest sr = null;
-
-						if (line.startsWith("search "))
-							sr = new SimpleSearchRequest(searchTerm);
-						else if (line.startsWith("search-r "))
-							sr = new RegExSearchRequest(searchTerm);
-
-						Iterator<MediaItem> it = JemServer.getInstance().Commands
-								.searchMedia(sr);
-						addLog("Performing search for: " + searchTerm);
-
-						while (it.hasNext()) {
-							MediaItem tmpItem = it.next();
-							addLog(" " + tmpItem.getMediaName());
-							resultCounter++;
+					else if (line.equals("quit") || line.equals("exit")) {
+						stop();
+					}
+					else if (group == null) {
+						Set<Group> groups = JemServer.getInstance().getUIGroups();
+						if (line.equals("list")) {
+							addLog("Groups:");
+							for (Group g: groups)
+								if (g.sectionCount() > 0)
+									addLog("  " + g.getTitle() + " - " + g.getDescription());
 						}
-						if (resultCounter == 0)
-							addLog("No results found!");
-						else
-							addLog("Done - Results Returned: " + resultCounter);
-					} catch (InvalidSearchTermException e) {
-						addLog("Invalid search term: " + searchTerm);
+						else {
+							for (Group g: groups)
+								if ((g.sectionCount() > 0) && (g.getTitle().equalsIgnoreCase(line))) {
+									group = g;
+									break;
+								}
+							if (group == null)
+								addLog("Unknown group: " + line);
+							else {
+								addLog("Now viewing group: " + group.getTitle());
+								if (group.sectionCount() == 1)
+									section = group.iterator().next();
+							}
+						}
+					}
+					else if (section == null) {
+						if (line.equals("list")) {
+							addLog("Sections:");
+							for (Section s: group)
+								addLog("  " + s.getTitle() + " - " + s.getDescription());
+						}
+						else if (line.equals("back")) {
+							group = null;
+							addLog("Now viewing: Root Menu");
+						}
+						else {
+							for (Section s: group)
+								if (s.getTitle().equalsIgnoreCase(line)) {
+									section = s;
+									addLog("Now viewing section: " + section.getTitle());
+									break;
+								}
+							if (section == null)
+								addLog("Unknown section: " + line);
+						}
+					}
+					else {
+						if (line.equals("list")) {
+							addLog("Commands:");
+							Iterator<Command> cit = section.getCommands();
+							while (cit.hasNext()) {
+								Command c = cit.next();
+								addLog("  " + c.getTitle() + " - " + c.getDescription());
+							}
+							addLog("");
+							addLog("Options: (Change with set)");
+							Iterator<Option> oit = section.getOptions();
+							while (oit.hasNext()) {
+								Option o = oit.next();
+								addLog("  " + o.getTitle() + " - " + o.getDescription());
+							}
+							addLog("");
+						}
+						else if (line.equals("back")) {
+							section = null;
+							if (group.sectionCount() == 1) {
+								group = null;
+								addLog("Now viewing: Root Menu");
+							}
+							else
+								addLog("Now viewing group: " + group.getTitle());
+						}
+						else if (line.startsWith("set")) {
+							int pos1 = line.indexOf(' ');
+							int pos2 = line.indexOf(pos1 + 1, ' ');
+							if (pos1 > -1) {
+								String opStr = line.substring(pos1 + 1, (pos2 == -1 ? line.length() : pos2) - pos1);
+								String value = "";
+								if (pos2 > -1)
+									value = line.substring(pos2 + 1);
+
+								boolean found = false;
+								Iterator<Option> oit = section.getOptions();
+								while (oit.hasNext()) {
+									Option o = oit.next();
+									if (opStr.equals(o.getTitle())) {
+										addLog("Changed " + opStr + " from " + o.getValue() + " to " + value);
+										found = true;
+										break;
+									}
+								}
+
+								if (found == false)
+									addLog("Unknown option: " + opStr);
+							}
+							else {
+								addLog("Usage: set OPTION [VALUE]");
+							}
+						}
+						else {
+							boolean found = false;
+							Iterator<Command> cit = section.getCommands();
+							while (cit.hasNext()) {
+								Command c = cit.next();
+								if (line.startsWith(c.getTitle().toLowerCase())) {
+									String[] args = null;
+									if (line.length() > c.getTitle().length())
+										args = line.substring(c.getTitle().length() + 1).split(" ");
+									else
+										args = new String[0];
+									c.activate(this, args);
+									found = true;
+									break;
+								}
+							}
+
+							if (found == false) {
+								Iterator<Option> oit = section.getOptions();
+								while (oit.hasNext()) {
+									Option o = oit.next();
+									if (line.equals(o.getTitle())) {
+										addLog(o.getTitle() + " = " + o.getValue());
+										found = true;
+										break;
+									}
+								}	
+							}
+
+							if (found == false)
+								addLog("Unknown command or option: " + line);
+						}
 					}
 				}
-				// Exit Command
-				else if ((line.equals("exit") == true)
-						|| (line.equals("quit") == true)) {
-					stop();
-					return;
-				}
-				// Shutdown command
-				else if (line.equals("shutdown") == true) {
-					JemServer.getInstance().addLog(
-													"Shutdown requested by: "
-															+ getUser());
-					JemServer.getInstance().Commands.shutdown();
-				}
-				// Unknown command
-				else if (line.equals("") == false)
-					addLog("Unknown command: " + line);
-
 			} catch (Exception e) {
-				JemServer.getInstance().addLog(
-												"Console exception caught: "
-														+ e.toString());
-				JemServer.getInstance().Commands.exception();
+				JemServer.getInstance().addLog("Console exception caught: " + e.toString());
+				JemServer.command().exception();
 			}
-		super.run();
+			super.run();
 	}
 
 	@Override

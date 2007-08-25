@@ -28,6 +28,10 @@ public class DMAPHTTPBody extends ParameterLinkedList implements HTTPBody {
 		return MIME_TYPE;
 	}
 
+	public String getContentType() {
+		return getMimeType().toString();
+	}
+	
 	public void readFromStream(InputStream in, int ContentLength)
 			throws IOException {
 		ParameterFactory.readFromStream(this, in, ContentLength);
@@ -39,4 +43,12 @@ public class DMAPHTTPBody extends ParameterLinkedList implements HTTPBody {
 			it.next().writeToStream(out);
 	}
 
+	public boolean forceCompression() {
+		return true;
+	}
+	
+	public boolean forceChunked() {
+		return false;
+	}
+	
 }

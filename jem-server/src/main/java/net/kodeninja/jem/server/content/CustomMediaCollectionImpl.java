@@ -3,19 +3,19 @@ package net.kodeninja.jem.server.content;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.HashSet;
 
 import org.w3c.dom.Node;
 
-import net.kodeninja.util.KNXMLModuleInitException;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.util.KNModuleInitException;
 
 public abstract class CustomMediaCollectionImpl implements
 		CustomMediaCollection {
-	protected Set<MediaItem> mediaList = Collections
-			.synchronizedSet(new TreeSet<MediaItem>());
+	protected Set<MediaItem> mediaList = Collections.synchronizedSet(new HashSet<MediaItem>());
 	protected String collectionName;
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		collectionName = xmlNode.getAttributes().getNamedItem("name")
 				.getNodeValue();
 	}

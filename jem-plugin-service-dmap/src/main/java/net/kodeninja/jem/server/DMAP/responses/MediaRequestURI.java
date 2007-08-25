@@ -1,7 +1,6 @@
 package net.kodeninja.jem.server.DMAP.responses;
 
 import java.io.InputStream;
-import java.util.Iterator;
 
 import net.kodeninja.DMAP.parameters.dmap.mstt;
 import net.kodeninja.http.packet.HTTPBody;
@@ -16,8 +15,9 @@ import net.kodeninja.jem.server.JemServer;
 import net.kodeninja.jem.server.DMAP.DMAPHTTPBody;
 import net.kodeninja.jem.server.DMAP.DMAPResponsePacket;
 import net.kodeninja.jem.server.DMAP.DMAPService;
-import net.kodeninja.jem.server.content.MediaItem;
-import net.kodeninja.jem.server.content.MetadataTypes;
+import net.kodeninja.jem.server.storage.MediaItem;
+import net.kodeninja.jem.server.storage.Metadata;
+import net.kodeninja.jem.server.storage.MetadataType;
 
 public class MediaRequestURI implements URIHandler {
 	protected DMAPService service;
@@ -27,8 +27,8 @@ public class MediaRequestURI implements URIHandler {
 		service = s;
 	}
 
-	public HTTPPacket<HTTPHeader, HTTPBody> process(HTTPSocket Socket,
-			HTTPPacket<HTTPHeader, HTTPBody> Packet) {
+	public  HTTPPacket<? extends HTTPBody> process(HTTPSocket Socket,
+			HTTPPacket<? extends HTTPBody> Packet) {
 		String loc = Packet.getHeader().getLocation().getPath();
 		if (loc.contains("/items/") == false)
 			return null;
@@ -39,23 +39,23 @@ public class MediaRequestURI implements URIHandler {
 		mediaRequested = Long.parseLong(mediaId);
 		if (mediaRequested > Integer.MAX_VALUE)
 			mediaRequested = Integer.MIN_VALUE
-					- (Integer.MAX_VALUE - mediaRequested) - 1;
+			- (Integer.MAX_VALUE - mediaRequested) - 1;
 
 		InputStream src = null;
 		long length = -1;
 
-		Iterator<MediaItem> mIt = JemServer.getInstance().getAllMedia();
-		while (mIt.hasNext()) {
-			MediaItem mi = mIt.next();
+		for (MediaItem mi: JemServer.getMediaStorage().getAllMedia()) {
 			if (mi.hashCode() == mediaRequested) {
 				src = service.getItemStream(mi);
 
 				if (service.transcodeItem(mi) == false)
-					try {
-						String size;
-						if ((size = mi.getMetadata(MetadataTypes.FileSize)) != null)
-							length = Integer.parseInt(size);
-					} catch (NumberFormatException e) {
+					for (Metadata metadata: mi.getMetadataList()) {
+						if (metadata.getType() == MetadataType.FileSize) {
+							try {
+								length = Integer.parseInt(metadata.getValue());
+								break;
+							} catch (NumberFormatException e) {}
+						}
 					}
 
 				break;
@@ -70,7 +70,7 @@ public class MediaRequestURI implements URIHandler {
 
 		HTTPHeader header = new HTTPHeader(HTTPVersion.HTTP1_1,
 				HTTPResponseCode.HTTP_200_OK);
-		HTTPPacket<HTTPHeader, HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
+		HTTPPacket<HTTPBody> response = new DMAPResponsePacket<HTTPBody>(
 				header, body, service);
 
 		return response;

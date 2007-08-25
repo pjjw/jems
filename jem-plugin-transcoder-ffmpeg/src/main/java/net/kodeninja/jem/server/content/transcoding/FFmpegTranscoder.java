@@ -6,21 +6,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 import org.w3c.dom.Node;
 
 import net.kodeninja.jem.server.JemServer;
 import net.kodeninja.util.KNXMLModule;
-import net.kodeninja.util.KNXMLModuleInitException;
+import net.kodeninja.util.KNModuleInitException;
 import net.kodeninja.util.MalformedMimeTypeException;
 import net.kodeninja.util.MimeType;
 
 public class FFmpegTranscoder implements Transcoder, KNXMLModule {
 	private String transcoderName = "";
 	private String path = "ffmpeg";
+	private boolean debug = false;
 	private List<FFmpegMethod> methods = new LinkedList<FFmpegMethod>();
 
-	public void xmlInit(Node xmlNode) throws KNXMLModuleInitException {
+	public void xmlInit(Node xmlNode) throws KNModuleInitException {
 		transcoderName = xmlNode.getAttributes().getNamedItem("name")
 				.getNodeValue();
 		for (Node modNode = xmlNode.getFirstChild(); modNode != null; modNode = modNode
@@ -29,6 +31,8 @@ public class FFmpegTranscoder implements Transcoder, KNXMLModule {
 				continue;
 			else if (modNode.getNodeName().equals("path"))
 				path = modNode.getTextContent();
+			else if (modNode.getNodeName().equals("debug"))
+				debug = true;
 			else if (modNode.getNodeName().equals("transcoder"))
 				try {
 					FFmpegMethod m = new FFmpegMethod(new MimeType(modNode
@@ -39,7 +43,7 @@ public class FFmpegTranscoder implements Transcoder, KNXMLModule {
 							modNode.getTextContent());
 					methods.add(m);
 				} catch (MalformedMimeTypeException e) {
-					throw new KNXMLModuleInitException(e.getMessage());
+					throw new KNModuleInitException(e.getMessage());
 				}
 		JemServer.getInstance().addLog(
 										"[" + transcoderName + "] Added "
@@ -59,10 +63,19 @@ public class FFmpegTranscoder implements Transcoder, KNXMLModule {
 
 		if (method != null) {
 			JemServer.getInstance().addLog("["+ getName() +"] Starting transcode. (" + from + " to " + to + ")");
-			String cmd = "\"" + path + "\" -i - " + method.getCommand() + " -";
+			
+			//Build command array
+			Vector<String> cmdVector = new Vector<String>();
+			cmdVector.add(path);
+			String[] args = ("-i - " + method.getCommand() + " -").split(" ");
+			for (String arg: args)
+				cmdVector.add(arg);
+			String[] cmd = new String[cmdVector.size()];
+			cmdVector.toArray(cmd);
+			
 			Process pid = Runtime.getRuntime().exec(cmd);
 			new FFmpegStreamBridge(pid, src, new BufferedOutputStream(pid.getOutputStream()), true).start();
-			new FFmpegStreamBridge(pid, pid.getErrorStream(), null, false).start();
+			new FFmpegStreamBridge(pid, pid.getErrorStream(), ( debug ? System.out : null), false).start();
 			return new BufferedInputStream(pid.getInputStream());
 		} else
 			return null;

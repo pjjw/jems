@@ -12,7 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import net.kodeninja.http.packet.HTTPBody;
-import net.kodeninja.http.packet.HTTPHeader;
 import net.kodeninja.http.packet.HTTPPacket;
 import net.kodeninja.http.service.handlers.PacketHandler;
 import net.kodeninja.util.KNModule;
@@ -23,8 +22,8 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 	protected MulticastSocket socket = null;
 	protected int requestTimeout = 100;
 	protected int childTimeout = 10000;
-	protected Set<PacketHandler> handlers = Collections
-			.synchronizedSet(new LinkedHashSet<PacketHandler>());
+	protected Set<PacketHandler> handlers = Collections.synchronizedSet(new LinkedHashSet<PacketHandler>());
+	protected String serverString = null; 
 
 	public HTTPChildService checkRequests(
 			HTTPService<? extends HTTPServerSocket> owner) {
@@ -32,13 +31,12 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 			return null;
 
 		try {
-			DatagramPacket packet = new DatagramPacket(new byte[socket
-					.getReceiveBufferSize()], socket.getReceiveBufferSize());
+			DatagramPacket packet = new DatagramPacket(new byte[socket.getReceiveBufferSize()], socket.getReceiveBufferSize());
 
 			socket.receive(packet);
 
 			return new HTTPChildService(owner.getScheduler(), this,
-					new HTTPUDPSocket(socket, packet));
+					new HTTPUDPSocket(socket, packet, serverString));
 		} catch (SocketTimeoutException e) {
 			return null;
 		} catch (IOException e) {
@@ -73,6 +71,20 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 		socket = null;
 	}
 
+	public String getLocalHost() {
+		if (isOpen())
+			return socket.getInetAddress().getHostName();
+		else
+			return "";
+	}
+
+	public int getPort() {
+		if (isOpen())
+			return socket.getLocalPort();
+		else
+			return -1;
+	}
+
 	public boolean isOpen() {
 		return socket.isBound() && !socket.isClosed();
 	}
@@ -99,11 +111,20 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 		}
 	}
 
+	public void setTTL(int ttl) {
+		try {
+			if (socket != null)
+				socket.setTimeToLive(ttl);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public boolean sendPacket(InetAddress addr, int port,
-			HTTPPacket<? extends HTTPHeader, ? extends HTTPBody> Packet) {
+			HTTPPacket<? extends HTTPBody> Packet) throws IOException {
 		if (socket == null)
 			return false;
-		return (new HTTPUDPSocket(socket, addr, port)).sendPacket(Packet);
+		return (new HTTPUDPSocket(socket, addr, port, serverString)).sendPacket(Packet);
 	}
 
 	public String getName() {
@@ -140,6 +161,14 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 
 	public int getTimeout() {
 		return childTimeout;
+	}
+	
+	public void setServerString(String s) {
+		serverString = s;
+	}
+
+	public String getServerString() {
+		return serverString;
 	}
 
 }

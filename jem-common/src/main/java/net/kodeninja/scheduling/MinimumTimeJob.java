@@ -22,6 +22,10 @@ public class MinimumTimeJob extends JobImpl {
 		return msec;
 	}
 
+	public void runNow() {
+		last = System.currentTimeMillis() - (msec * 2); 
+	}
+	
 	public void reset() {
 		last = System.currentTimeMillis();
 	}
@@ -31,7 +35,6 @@ public class MinimumTimeJob extends JobImpl {
 	}
 
 	public boolean isUrgent() {
-		// TODO Auto-generated method stub
 		return System.currentTimeMillis() > last + (msec * 2);
 	}
 

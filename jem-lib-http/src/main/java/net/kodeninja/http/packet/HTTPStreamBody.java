@@ -30,6 +30,10 @@ public class HTTPStreamBody implements HTTPBody {
 		return m;
 	}
 
+	public String getContentType() {
+		return getMimeType().toString();
+	}
+	
 	public void readFromStream(InputStream in, int ContentLength)
 			throws IOException {
 		throw new IOException("Unsupported operation.");
@@ -37,7 +41,15 @@ public class HTTPStreamBody implements HTTPBody {
 
 	public void writeToStream(OutputStream out) throws IOException {
 		StreamWriter sw = new StreamWriter(out);
-		sw.writeEntireStream(s);
+		if (s != null)
+			sw.writeEntireStream(s);
+	}
+	
+	public boolean forceCompression() {
+		return false;
 	}
 
+	public boolean forceChunked() {
+		return true;
+	}
 }

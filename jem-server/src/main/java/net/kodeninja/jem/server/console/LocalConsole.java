@@ -19,7 +19,7 @@ public class LocalConsole extends ConsoleInterface {
 	@Override
 	public void stop() {
 		super.stop();
-		JemServer.getInstance().Commands.shutdown();
+		JemServer.command().shutdown();
 	}
 
 	public int getVersionMajor() {

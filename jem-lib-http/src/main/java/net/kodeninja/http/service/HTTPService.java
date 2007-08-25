@@ -1,5 +1,7 @@
 package net.kodeninja.http.service;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,9 +55,18 @@ public class HTTPService<T extends HTTPServerSocket> extends JobImpl implements
 	}
 
 	public int getVersionRevision() {
-		return 0;
+		return 1;
 	}
 
+	public String getURLBase() {
+		try {
+			return "http://" + InetAddress.getLocalHost().getHostAddress() + ":" + getBoundPort();
+		}
+		catch (UnknownHostException e) {
+			return "http://" + transport.getLocalHost() + ":" + getBoundPort();
+		}
+	}
+	
 	@Override
 	public void run() {
 		Iterator<HTTPChildService> it = requests.iterator();
@@ -95,6 +106,13 @@ public class HTTPService<T extends HTTPServerSocket> extends JobImpl implements
 
 	public int getPort() {
 		return port;
+	}
+	
+	public int getBoundPort() {
+		int result = transport.getPort();
+		if (result < 1)
+			result = getPort();
+		return result;
 	}
 
 	protected void setPort(int newPort) {
