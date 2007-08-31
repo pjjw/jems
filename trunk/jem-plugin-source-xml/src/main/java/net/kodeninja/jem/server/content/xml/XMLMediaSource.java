@@ -155,6 +155,18 @@ public class XMLMediaSource implements MediaSource, KNServiceModule, MediaUpdate
 		return 2;
 	}
 
+	private String filterValue(String in) {
+		StringBuffer buf = new StringBuffer(in);
+		int i = 0;
+		while (i < buf.length())
+			if (buf.charAt(i) < 32)
+				buf.deleteCharAt(i);
+			else
+				i++;
+
+		return buf.toString();
+	}
+	
 	public void mediaChanged() {
 		if (disabled)
 			return;
@@ -175,7 +187,7 @@ public class XMLMediaSource implements MediaSource, KNServiceModule, MediaUpdate
 
 				for (Metadata metadata: item.getMetadataList()) {
 					Element mdNode = doc.createElement(metadata.getType().name());
-					mdNode.setTextContent(metadata.getValue());
+					mdNode.setTextContent(filterValue(metadata.getValue()));
 					miNode.appendChild(mdNode);
 				}
 			}

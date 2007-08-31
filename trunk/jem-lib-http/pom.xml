@@ -10,7 +10,7 @@
   <groupId>net.kodeninja</groupId>
   <artifactId>jem-lib-http</artifactId>
   <name>JEM Library - HTTP</name>
-  <version>0.1.2-SNAPSHOT</version>
+  <version>0.1.3-SNAPSHOT</version>
   <dependencies>
     <dependency>
       <groupId>net.kodeninja</groupId>

@@ -39,7 +39,7 @@ public class GenericFile implements MetadataFactory {
 	protected void skipBytes(InputStream is, long toSkip) throws IOException {
 		while (toSkip > 0) {
 			long skipped = is.skip(toSkip);
-			if (skipped < 0)
+			if (skipped <= 0)
 				throw new IOException();
 			else
 				toSkip -= skipped;

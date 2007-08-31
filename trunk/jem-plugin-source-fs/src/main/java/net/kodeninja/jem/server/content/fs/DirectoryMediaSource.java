@@ -269,7 +269,7 @@ KNRunnableModule, KNServiceModule, MediaSource {
 	}
 
 	public int getVersionRevision() {
-		return 1;
+		return 2;
 	}
 
 }

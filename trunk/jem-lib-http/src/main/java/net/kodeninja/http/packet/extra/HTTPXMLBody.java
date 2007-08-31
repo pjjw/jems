@@ -1,9 +1,9 @@
 package net.kodeninja.http.packet.extra;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -47,13 +47,13 @@ public class HTTPXMLBody implements HTTPBody {
 	public long getContentLength() {
 		try {
 			int result;
-			StringWriter w = new StringWriter();
-			StreamResult wr = new StreamResult(w);
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			StreamResult wr = new StreamResult(out);
 			DOMSource src = new DOMSource(doc);
 			Transformer serializer = TransformerFactory.newInstance().newTransformer();
 			serializer.transform(src, wr);
-			result = w.getBuffer().length();
-			w.close();
+			result = out.size();
+			out.close();
 			return result;
 		} catch (TransformerConfigurationException e) {
 			e.printStackTrace();

@@ -15,7 +15,6 @@ import java.util.Scanner;
 
 import net.kodeninja.jem.server.JemServer;
 import net.kodeninja.jem.server.storage.MediaItem;
-import net.kodeninja.jem.server.storage.Metadata;
 import net.kodeninja.jem.server.storage.MetadataType;
 import net.kodeninja.util.Pair;
 
@@ -302,66 +301,59 @@ public class MPEGAudioFile extends AudioFile {
 					}
 				}
 				else if (isID3v1(buf)) {
-					boolean addTitle = true;
-					boolean addArtist = true;
-					boolean addAlbum = true;
-					boolean addYear = true;
-					boolean addGenre = true;
-					boolean addTrack = true;
-					
-					for (Metadata metadata: item.getMetadataList()) {
-						addTitle &= (metadata.getType().equals(MetadataType.Title) == false);
-						addArtist &= (metadata.getType().equals(MetadataType.Format) == false);
-						addAlbum &= (metadata.getType().equals(MetadataType.Set) == false);
-						addYear &= (metadata.getType().equals(MetadataType.Year) == false);
-						addGenre &= (metadata.getType().equals(MetadataType.Genre) == false);
-						addTrack &= (metadata.getType().equals(MetadataType.SetPosition) == false);
-
-						if ((addTitle && addArtist && addAlbum && addYear && addGenre && addTrack) == false)
-							break;
+					boolean valid = false;
+					is.mark(129);
+					try {
+						skipBytes(is, 129);
 					}
-					
-					String tmpString = "";
-					byte[] songTitle = new byte[30];
-					byte[] songArtist = new byte[30];
-					byte[] songAlbum = new byte[30];
-					byte[] songYear = new byte[4];
-					byte[] songComment = new byte[28];
-					byte[] track = new byte[2];
-					int genre = -1;
+					catch (IOException e) {
+						valid = true;
+					}
+					is.reset();
 
-					is.read(songTitle);
-					is.read(songArtist);
-					is.read(songAlbum);
-					is.read(songYear);
-					is.read(songComment);
-					is.read(track);
-					genre = is.read();
-					bytePos += 125;
+					if (valid) {
+						String tmpString = "";
+						byte[] songTitle = new byte[30];
+						byte[] songArtist = new byte[30];
+						byte[] songAlbum = new byte[30];
+						byte[] songYear = new byte[4];
+						byte[] songComment = new byte[28];
+						byte[] track = new byte[2];
+						int genre = -1;
 
-					if (((tmpString = new String(songTitle).trim()).length() > 0) && (addTitle))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Title, tmpString.trim());
+						is.read(songTitle);
+						is.read(songArtist);
+						is.read(songAlbum);
+						is.read(songYear);
+						is.read(songComment);
+						is.read(track);
+						genre = is.read();
+						bytePos += 125;
 
-					if (((tmpString = new String(songArtist).trim()).length() > 0) && (addArtist))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Artist, tmpString.trim());
+						if ((tmpString = new String(songTitle).trim()).length() > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Title, tmpString.trim());
 
-					if (((tmpString = new String(songAlbum).trim()).length() > 0) && (addAlbum))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Set, tmpString.trim());
+						if ((tmpString = new String(songArtist).trim()).length() > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Artist, tmpString.trim());
 
-					if (((tmpString = new String(songYear).trim()).length() > 0) && (addYear))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Year, tmpString.trim());
+						if ((tmpString = new String(songAlbum).trim()).length() > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Set, tmpString.trim());
 
-					if (((genre >= 0) && (genre < ID3_GENRE_TAGS.length)) && (addGenre))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Genre, ID3_GENRE_TAGS[genre]);
+						if ((tmpString = new String(songYear).trim()).length() > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Year, tmpString.trim());
 
-					tmpString = new String(songComment);
-					if (track[0] != 0)
-						tmpString += new String(track);
-					else if ((track[1] > 0) && (addTrack))
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.SetPosition, "" + track[1]);
+						if ((genre >= 0) && (genre < ID3_GENRE_TAGS.length))
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Genre, ID3_GENRE_TAGS[genre]);
 
-					if (tmpString.trim().length() > 0)
-						JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Description, tmpString.trim());
+						tmpString = new String(songComment);
+						if (track[0] != 0)
+							tmpString += new String(track);
+						else if (track[1] > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.SetPosition, "" + track[1]);
+
+						if (tmpString.trim().length() > 0)
+							JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Description, tmpString.trim());
+					}
 				}
 				else if (isID3v2(buf) && (readId3 == false)) {
 					readId3 = true;
