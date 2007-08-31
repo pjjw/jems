@@ -81,36 +81,36 @@ public class XMLMediaSource2 extends DefaultHandler implements MediaSource, KNSe
 		try {
 			StreamResult sr = new StreamResult(new FileWriter(listFile));
 			SAXTransformerFactory t = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-			
-			 TransformerHandler hd = t.newTransformerHandler();
-			 Transformer serializer = hd.getTransformer();
-			 serializer.setOutputProperty(OutputKeys.ENCODING,"UTF-8");
-			 serializer.setOutputProperty(OutputKeys.INDENT,"yes");
-			 hd.setResult(sr);
-			 
-			 hd.startDocument();
-			 
-			 AttributesImpl atts = new AttributesImpl();
-			 hd.startElement("", "", "MediaList", atts);
-			 for (MediaItem item: JemServer.getMediaStorage().getAllMedia()) {
-				 atts.addAttribute("", "", "MimeType", "CDATA", JemServer.getMediaStorage().getMimeType(item).toString());
-				 atts.addAttribute("", "", "URI", "CDATA", item.getURI().toString());
-				 hd.startElement("", "", "MediaItem", atts);
-				 atts.clear();
-				 
-				 for (Metadata metadata: item.getMetadataList()) {
-					 String name = metadata.getType().toString();
-					 hd.startElement("", "", name, atts);
-					 char[] buf = metadata.getValue().toCharArray();
-					 hd.characters(buf, 0, buf.length);
-					 hd.endElement("", "", name);
-				 }
-				 hd.endElement("", "", "MediaItem");
-			 }
-			 hd.endElement("", "", "MediaList");
-			 
-			 hd.endDocument();
-			
+
+			TransformerHandler hd = t.newTransformerHandler();
+			Transformer serializer = hd.getTransformer();
+			serializer.setOutputProperty(OutputKeys.ENCODING,"UTF-8");
+			serializer.setOutputProperty(OutputKeys.INDENT,"yes");
+			hd.setResult(sr);
+
+			hd.startDocument();
+
+			AttributesImpl atts = new AttributesImpl();
+			hd.startElement("", "", "MediaList", atts);
+			for (MediaItem item: JemServer.getMediaStorage().getAllMedia()) {
+				atts.addAttribute("", "", "MimeType", "CDATA", JemServer.getMediaStorage().getMimeType(item).toString());
+				atts.addAttribute("", "", "URI", "CDATA", item.getURI().toString());
+				hd.startElement("", "", "MediaItem", atts);
+				atts.clear();
+
+				for (Metadata metadata: item.getMetadataList()) {
+					String name = metadata.getType().toString();
+					hd.startElement("", "", name, atts);
+					char[] buf = filterValue(metadata.getValue()).toCharArray();
+					hd.characters(buf, 0, buf.length);
+					hd.endElement("", "", name);
+				}
+				hd.endElement("", "", "MediaItem");
+			}
+			hd.endElement("", "", "MediaList");
+
+			hd.endDocument();
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
@@ -118,6 +118,18 @@ public class XMLMediaSource2 extends DefaultHandler implements MediaSource, KNSe
 		} catch (TransformerConfigurationException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private String filterValue(String in) {
+		StringBuffer buf = new StringBuffer(in);
+		int i = 0;
+		while (i < buf.length())
+			if (buf.charAt(i) < 32)
+				buf.deleteCharAt(i);
+			else
+				i++;
+
+		return buf.toString();
 	}
 
 	@Override

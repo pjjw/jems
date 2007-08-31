@@ -52,33 +52,35 @@ public class AddDirectoryJob extends JobImpl {
 
 		addRunning();
 		for (File f : path.listFiles())
-			if (f.isFile()) {
-				MimeType fileType = owner.getMimeTypeFactory(f);
-				if ((ignoreUnknown == false) || (fileType.equals(MimeType.WILDCARD) == false)) {
-					MediaItem mi;
+			if (f.getName().startsWith(".") == false) {
+				if (f.isFile()) {
+					MimeType fileType = owner.getMimeTypeFactory(f);
+					if ((ignoreUnknown == false) || (fileType.equals(MimeType.WILDCARD) == false)) {
+						MediaItem mi;
 
-					URI uri = f.toURI();
-					if ((JemServer.getMediaStorage().mediaExists(uri) == false) && 
-							((mi = JemServer.getMediaStorage().addNewMedia(uri, fileType)) != null)) {
-						JemServer.getMediaStorage().addMediaMetadata(mi, MetadataType.FileSize, "" + f.length());
-					
-						owner.incMediaCount();
-						try {
-							owner.getMetadataFactory(fileType).addMetadata(mi);
-						} catch (Throwable t) {
-							System.err.println(f);
-							t.printStackTrace();
+						URI uri = f.toURI();
+						if ((JemServer.getMediaStorage().mediaExists(uri) == false) && 
+								((mi = JemServer.getMediaStorage().addNewMedia(uri, fileType)) != null)) {
+							JemServer.getMediaStorage().addMediaMetadata(mi, MetadataType.FileSize, "" + f.length());
+
+							owner.incMediaCount();
+							try {
+								owner.getMetadataFactory(fileType).addMetadata(mi);
+							} catch (Throwable t) {
+								System.err.println(f);
+								t.printStackTrace();
+							}
 						}
 					}
+				} else if (f.isDirectory()) {
+					// Ignore the same path as we are currently searching
+					if (path.getAbsolutePath().equals(f.getAbsolutePath()))
+						continue;
+					// Ignore a path leading to a super directory
+					if (path.getAbsolutePath().startsWith(f.getAbsolutePath()))
+						continue;
+					(new AddDirectoryJob(owner, f, ignoreUnknown)).start();
 				}
-			} else if (f.isDirectory()) {
-				// Ignore the same path as we are currently searching
-				if (path.getAbsolutePath().equals(f.getAbsolutePath()))
-					continue;
-				// Ignore a path leading to a super directory
-				if (path.getAbsolutePath().startsWith(f.getAbsolutePath()))
-					continue;
-				(new AddDirectoryJob(owner, f, ignoreUnknown)).start();
 			}
 		subRunning();
 		super.run();
