@@ -77,6 +77,9 @@ public class MPEG4File extends GenericFile {
 			bytesRead += tagSize.get(0) - 8;
 		}
 		
+		if (bytesRead == 0)
+			return true;
+		
 		return false;
 	}
 	
