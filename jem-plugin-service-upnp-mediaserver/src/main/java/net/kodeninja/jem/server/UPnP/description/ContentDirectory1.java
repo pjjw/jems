@@ -1,6 +1,6 @@
 package net.kodeninja.jem.server.UPnP.description;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +22,7 @@ import net.kodeninja.jem.server.UPnP.description.internal.MediaTreeItem;
 import net.kodeninja.jem.server.UPnP.description.search.SearchExpression;
 import net.kodeninja.jem.server.storage.MediaItem;
 import net.kodeninja.jem.server.storage.MediaUpdateHook;
+import net.kodeninja.jem.server.storage.Metadata;
 import net.kodeninja.jem.server.www.WWWService;
 import net.kodeninja.util.MimeType;
 
@@ -132,15 +133,15 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 		Media_Root = new MediaTreeContainer("0", "Root", "object.container");
 
 		Media_Music = new MediaTreeContainer("1", "Music", "object.container", Media_Root);
-		Media_Music_All = new MediaTreeContainer("4", "All Music", "object.item.audioItem", Media_Music);
-		Media_Music_Genre = new MediaTreeContainer("5", "Genre", "object.container.genre.musicGenre", Media_Music);
-		Media_Music_Artist = new MediaTreeContainer("6", "Artist", "object.container.person.musicArtist", Media_Music);
-		Media_Music_Album = new MediaTreeContainer("7", "Album", "object.container.album.musicAlbum", Media_Music);
-		Media_Music_Playlists = new MediaTreeContainer("F", "Playlists", "object.container.playlistContainer", Media_Music);
-		Media_Music_Folders = new MediaTreeContainer("14", "Folders", "object.storageFolder", Media_Music);
-		Media_Music_Contributing_Artists = new MediaTreeContainer("100", "Contributing Artists", "object.container.person.musicArtist", Media_Music);
-		Media_Music_Album_Artist = new MediaTreeContainer("107", "Album Artist", "object.container.person.musicArtist", Media_Music);
-		Media_Music_Composer = new MediaTreeContainer("108", "Composer", "object.container.person.musicArtist", Media_Music);
+		Media_Music_All = new MediaTreeContainer("4", "All Music", "object.container", Media_Music);
+		Media_Music_Genre = new MediaTreeContainer("5", "Genre", "object.container", Media_Music);
+		Media_Music_Artist = new MediaTreeContainer("6", "Artist", "object.container", Media_Music);
+		Media_Music_Album = new MediaTreeContainer("7", "Album", "object.container", Media_Music);
+		Media_Music_Playlists = new MediaTreeContainer("F", "Playlists", "object.container", Media_Music);
+		Media_Music_Folders = new MediaTreeContainer("14", "Folders", "object.container", Media_Music);
+		Media_Music_Contributing_Artists = new MediaTreeContainer("100", "Contributing Artists", "object.container", Media_Music);
+		Media_Music_Album_Artist = new MediaTreeContainer("107", "Album Artist", "object.container", Media_Music);
+		Media_Music_Composer = new MediaTreeContainer("108", "Composer", "object.container", Media_Music);
 		Media_Music_Rating = new MediaTreeContainer("101", "Rating", "object.container", Media_Music);
 		Media_Music_Rating_1 = new MediaTreeContainer("102", "1+ stars", "object.container", Media_Music_Rating);
 		Media_Music_Rating_2 = new MediaTreeContainer("103", "2+ stars", "object.container", Media_Music_Rating);
@@ -149,12 +150,12 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 		Media_Music_Rating_5 = new MediaTreeContainer("106", "5+ stars", "object.container", Media_Music_Rating);
 
 		Media_Video = new MediaTreeContainer("2", "Video", "object.container", Media_Root);
-		Media_Video_All = new MediaTreeContainer("8", "All Video", "object.item.videoItem", Media_Video);
-		Media_Video_Genre = new MediaTreeContainer("9", "Genre", "object.container.genre.videoGenre", Media_Video);
-		Media_Video_Actor = new MediaTreeContainer("A", "Actor", "object.container.person.movieActor", Media_Video);
-		Media_Video_Series = new MediaTreeContainer("E", "Series", "object.container.album.videoAlbum", Media_Video);
-		Media_Video_Playlists = new MediaTreeContainer("10", "Playlists", "object.container.playlistContainer", Media_Video);
-		Media_Video_Folders = new MediaTreeContainer("15", "Folders", "object.storageFolder", Media_Video);
+		Media_Video_All = new MediaTreeContainer("8", "All Video", "object.container", Media_Video);
+		Media_Video_Genre = new MediaTreeContainer("9", "Genre", "object.container", Media_Video);
+		Media_Video_Actor = new MediaTreeContainer("A", "Actor", "object.container", Media_Video);
+		Media_Video_Series = new MediaTreeContainer("E", "Series", "object.container", Media_Video);
+		Media_Video_Playlists = new MediaTreeContainer("10", "Playlists", "object.container", Media_Video);
+		Media_Video_Folders = new MediaTreeContainer("15", "Folders", "object.container", Media_Video);
 		Media_Video_Rating = new MediaTreeContainer("200", "Rating", "object.container", Media_Video);
 		Media_Video_Rating_1 = new MediaTreeContainer("201", "1+ stars", "object.container", Media_Video_Rating);
 		Media_Video_Rating_2 = new MediaTreeContainer("202", "2+ stars", "object.container", Media_Video_Rating);
@@ -163,12 +164,12 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 		Media_Video_Rating_5 = new MediaTreeContainer("205", "5+ stars", "object.container", Media_Video_Rating);
 
 		Media_Pictures = new MediaTreeContainer("3", "Pictures", "object.container", Media_Root);
-		Media_Pictures_All = new MediaTreeContainer("B", "All Pictures", "object.item.imageItem", Media_Pictures);
-		Media_Pictures_Date_Taken = new MediaTreeContainer("C", "Date Taken", "object.container.album.photoAlbum", Media_Pictures);
-		Media_Pictures_Albums = new MediaTreeContainer("D", "Albums", "object.container.album.photoAlbum", Media_Pictures);
-		Media_Pictures_Keyword = new MediaTreeContainer("D2", "Keyword", "object.container.album.photoAlbum", Media_Pictures);
-		Media_Pictures_Playlists = new MediaTreeContainer("11", "Playlists", "object.container.playlistContainer", Media_Pictures);
-		Media_Pictures_Folders = new MediaTreeContainer("16", "Folders", "object.storageFolder", Media_Pictures);
+		Media_Pictures_All = new MediaTreeContainer("B", "All Pictures", "object.container", Media_Pictures);
+		Media_Pictures_Date_Taken = new MediaTreeContainer("C", "Date Taken", "object.container", Media_Pictures);
+		Media_Pictures_Albums = new MediaTreeContainer("D", "Albums", "object.container", Media_Pictures);
+		Media_Pictures_Keyword = new MediaTreeContainer("D2", "Keyword", "object.container", Media_Pictures);
+		Media_Pictures_Playlists = new MediaTreeContainer("11", "Playlists", "object.container", Media_Pictures);
+		Media_Pictures_Folders = new MediaTreeContainer("16", "Folders", "object.container", Media_Pictures);
 		Media_Pictures_Rating = new MediaTreeContainer("300", "Rating", "object.container", Media_Pictures);
 		Media_Pictures_Rating_1 = new MediaTreeContainer("301", "1+ stars", "object.container", Media_Pictures_Rating);
 		Media_Pictures_Rating_2 = new MediaTreeContainer("302", "2+ stars", "object.container", Media_Pictures_Rating);
@@ -177,8 +178,8 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 		Media_Pictures_Rating_5 = new MediaTreeContainer("305", "5+ stars", "object.container", Media_Pictures_Rating);
 
 		Media_Playlists = new MediaTreeContainer("12", "Playlists", "object.container", Media_Root);
-		Media_Playlists_All = new MediaTreeContainer("13", "All Playlists", "object.container.playlistContainer", Media_Playlists);
-		Media_Playlists_Folders = new MediaTreeContainer("17", "Folders", "object.storageFolder", Media_Playlists);
+		Media_Playlists_All = new MediaTreeContainer("13", "All Playlists", "object.container", Media_Playlists);
+		Media_Playlists_Folders = new MediaTreeContainer("17", "Folders", "object.container", Media_Playlists);
 	}
 
 	@Override
@@ -223,9 +224,10 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 			while (it.hasNext())
 				matches += search(result, expr, it.next());
 		}
-		else if (expr.evaluate(mt)) {
+		
+		if (expr.evaluate(mt)) {
 			result.add(mt);
-			matches = 1;
+			matches++;
 		}
 		return matches;
 	}
@@ -234,7 +236,7 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 			Map<ServiceActionArgument, Object> outArgs, boolean isSearch) throws ControlException {
 
 		try {
-			String id = ("" + (inArgs.get(Browse_ObjectID) == null ? inArgs.get(Search_ContainerID) : inArgs.get(Browse_ObjectID))).trim();
+			String id = ("" + (((inArgs.get(Browse_ObjectID) == null) || (inArgs.get(Browse_ObjectID).equals(""))) ? inArgs.get(Search_ContainerID) : inArgs.get(Browse_ObjectID))).trim();
 
 			int start = Integer.parseInt("" + inArgs.get(Browse_StartingIndex));
 			int count = Integer.parseInt("" + inArgs.get(Browse_RequestedCount));
@@ -284,8 +286,12 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 			//	else
 			//	outArgs.put(Browse_UpdateID, "");
 		} catch (NumberFormatException e) {
-			//return false;
+			throw new ControlException(402, "Invalid args");
 		}
+	}
+
+	private void addItemTo(MediaItem mi, MediaTreeContainer container) {
+		new MediaTreeItem("i" + container.getId() + "_" + mi.hashCode(), container, mi, www.getURLBase() + www.getItemStreamURI(mi));
 	}
 
 	public void mediaChanged() {
@@ -294,9 +300,55 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 			updateId = 0;
 		setStateVarValue(SystemUpdateID, updateId);
 
-		Set<MediaTree> changed = new HashSet<MediaTree>();
-
+		Media_Music_All.clearChildern();
+		Media_Music_Artist.clearChildern();
+		Media_Music_Album.clearChildern();
+		Media_Music_Genre.clearChildern();
 		Set<MediaItem> music = JemServer.getMediaStorage().getMediaMatching(new MimeType("audio", "*"));
+		Map<String, MediaTreeContainer> artists = new HashMap<String, MediaTreeContainer>();
+		Map<String, MediaTreeContainer> albums = new HashMap<String, MediaTreeContainer>();
+		Map<String, MediaTreeContainer> genres = new HashMap<String, MediaTreeContainer>();
+
+		for (MediaItem mi: music) {
+			addItemTo(mi, Media_Music_All);
+			for (Metadata md: mi.getMetadataList()) {
+				switch (md.getType())  {
+				case Artist:
+					MediaTreeContainer artist = artists.get(md.getValue().toLowerCase());
+					if (artist == null) {
+						artist = new MediaTreeContainer("artist_" + md.getValue().toLowerCase().replace(' ', '_'), md.getValue(), "object.container.person.musicArtist");
+						Media_Music_Artist.addChild(artist);
+						artists.put(md.getValue().toLowerCase(), artist);
+					}
+					addItemTo(mi, artist);
+					break;
+				case Set:
+					MediaTreeContainer album = albums.get(md.getValue().toLowerCase());
+					if (album == null) {
+						album = new MediaTreeContainer("album_" + md.getValue().toLowerCase().replace(' ', '_'), md.getValue(), "object.container.album.musicAlbum");
+						Media_Music_Album.addChild(album);
+						albums.put(md.getValue().toLowerCase(), album);
+					}
+					addItemTo(mi, album);
+					break;
+				case Genre:
+					MediaTreeContainer genre = genres.get(md.getValue().toLowerCase());
+					if (genre == null) {
+						genre = new MediaTreeContainer("genre_" + md.getValue().toLowerCase().replace(' ', '_'), md.getValue(), "object.container.genre.musicGenre");
+						Media_Music_Genre.addChild(genre);
+						genres.put(md.getValue().toLowerCase(), genre);
+					}
+					addItemTo(mi, genre);
+					break;
+				default:
+					break;
+				}
+			}
+		}
+
+		/*
+		Set<MediaItem> music = JemServer.getMediaStorage().getMediaMatching(new MimeType("audio", "*"));
+		Set<String> artists = new HashSet<String>();
 
 		Iterator<MediaTree> ait = Media_Music_All.getChildern();
 		while (ait.hasNext()) {
@@ -355,7 +407,7 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 			new MediaTreeItem("i" + Media_Pictures_All.getId() + "_" + mi.hashCode(), Media_Pictures_All, mi, www.getURLBase() + www.getItemStreamURI(mi));
 			new MediaTreeItem("i" + Media_Pictures_Folders.getId() + "_" + mi.hashCode(), Media_Pictures_Folders, mi, www.getURLBase() + www.getItemStreamURI(mi));
 		}
-
+		 */
 
 	}
 

@@ -32,7 +32,7 @@ public class MediaServer1 extends RootDevice {
 		}
 		
 		this.owner = owner;
-		friendlyName = name;
+		friendlyName = "JEMS: " + name;
 		UDN = new SSDPUUID(UUID);
 		
 		manufacturer = "KodeNinja.net";
@@ -40,7 +40,7 @@ public class MediaServer1 extends RootDevice {
 		modelNumber = "4.0";//owner.getVersionMajor() + "." + owner.getVersionMinor() + "." + owner.getVersionRevision();
 		try {
 			manufacturerURL = new URL("http://code.google.com/p/jems/");
-			//modelURL = new URL("http://code.google.com/p/jems/");
+			modelURL = new URL("http://code.google.com/p/jems/");
 		}
 		catch (MalformedURLException e) {
 			// Do nothing
@@ -65,6 +65,7 @@ public class MediaServer1 extends RootDevice {
 		Element dlnaTag = doc.createElement("dlna:X_DLNADOC");
 		dlnaTag.setTextContent("DMS-1.50");
 		dlnaTag.setAttribute("xmlns:dlna", "urn:schemas-dlna-org:device-1-0");
+		//Uncomment to pretend to be DLNA compliant
 		//device.appendChild(dlnaTag);
 		return device;
 	}

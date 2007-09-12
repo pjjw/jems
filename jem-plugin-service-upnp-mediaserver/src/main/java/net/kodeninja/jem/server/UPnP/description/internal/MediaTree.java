@@ -21,6 +21,8 @@ public interface MediaTree {
 	
 	public void removeChild(MediaTree child);
 	
+	public void clearChildern();
+	
 	public int getChildernCount();
 	
 	public Iterator<MediaTree> getChildern();
