@@ -14,8 +14,6 @@ public class MediaTreeContainer implements MediaTree {
 	public MediaTreeContainer(String id, String name, String itemClass) {
 		this.id = id;
 		this.name = name;
-		//FIXME This needs fixing...
-		itemClass = "object.container";
 		
 		attributes.add(new MediaTreeAttribute("upnp:class", itemClass));
 	}
@@ -38,6 +36,10 @@ public class MediaTreeContainer implements MediaTree {
 	
 	public void removeChild(MediaTree child) {
 		childern.remove(child);
+	}
+	
+	public void clearChildern() {
+		childern.clear();
 	}
 	
 	public void setParent(MediaTree parent) {

@@ -20,7 +20,7 @@ public abstract class Device implements UPnPDescription {
 	protected String manufacturer = "";
 	protected URL manufacturerURL = null;
 	protected String modelName = "";
-	protected String modelNumber = null;
+	protected String modelNumber = "";
 	protected URL modelURL = null;
 	protected String serialNumber = "";
 	protected LinkedList<DeviceIcon> iconList = new LinkedList<DeviceIcon>();
@@ -44,7 +44,8 @@ public abstract class Device implements UPnPDescription {
 		tmp.setTextContent("" + manufacturer);
 		
 		device.appendChild(tmp = doc.createElement("manufacturerURL"));
-		tmp.setTextContent("" + manufacturerURL);
+		if (manufacturerURL != null)
+			tmp.setTextContent("" + manufacturerURL);
 		
 		device.appendChild(tmp = doc.createElement("modelName"));
 		tmp.setTextContent("" + modelName);
@@ -53,7 +54,8 @@ public abstract class Device implements UPnPDescription {
 		tmp.setTextContent("" + modelNumber);
 		
 		device.appendChild(tmp = doc.createElement("modelURL"));
-		tmp.setTextContent("" + modelURL);
+		if (modelURL != null)
+			tmp.setTextContent("" + modelURL);
 		
 		if (serialNumber.equals(""))
 			serialNumber = UDN.getUUID();

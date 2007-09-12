@@ -118,8 +118,7 @@ public class ControlActionURI extends UPnPURIParser implements URIHandler {
 						}
 					}
 
-					//TODO Better handling of invalid argument
-					System.err.println("Argument not registered: " + argElement.getNodeName());
+					throw new ControlException(402, "Invalid Args");
 				}
 
 
@@ -160,7 +159,6 @@ public class ControlActionURI extends UPnPURIParser implements URIHandler {
 					Object value = outArgs.get(arg);
 					if (value != null)
 						argElement.setTextContent(value.toString());
-					//TODO Add error checking here!
 
 					actionElement.appendChild(argElement);
 				}

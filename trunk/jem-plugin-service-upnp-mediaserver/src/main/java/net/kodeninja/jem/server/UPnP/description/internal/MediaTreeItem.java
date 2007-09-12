@@ -144,6 +144,9 @@ public class MediaTreeItem implements MediaTree {
 
 	public void removeChild(MediaTree child) {
 	}
+	
+	public void clearChildern() {
+	}
 
 	public MediaTree getBranch(String id) {
 		if (getId().equals(id))

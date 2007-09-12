@@ -82,21 +82,29 @@ public class OperationExpression implements Terminal {
 		case GREATER_THAN:
 		case GREATER_EQUAL_THAN:
 			float right;
+			boolean nonNumber = false;
 			try {
 				right = Float.parseFloat(value);
 			}
 			catch (NumberFormatException e) {
-				return false;
+				nonNumber = true;
+				right = 0;
 			}
 
 			for (MediaTreeAttribute mtAttr: mt.getAttributes())
 				if (mtAttr.getName().equalsIgnoreCase(prop)) {
 					float left;
 
-					try {
-						left = Float.parseFloat(mtAttr.getValue().toString());
-					} catch (NumberFormatException e) {
-						continue;
+					if (nonNumber == false) {
+						try {
+							left = Float.parseFloat(mtAttr.getValue().toString());
+						} catch (NumberFormatException e) {
+							continue;
+						}
+					}
+					else {
+						// Allow for strings to be compared via =,!=,<,<=,>,>=
+						left = mtAttr.getValue().toString().compareTo(value);
 					}
 
 					switch (op) {
