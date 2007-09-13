@@ -1,5 +1,5 @@
 #summary List of current plugins.
-#labels Featured,Phase-Deploy
+#labels Phase-Support
 
 = Introduction =
 
