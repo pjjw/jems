@@ -1,5 +1,5 @@
 #summary This page describes what needs to be done to setup up JEMS.
-#labels Featured,Phase-Deploy
+#labels Phase-Support
 
 = Introduction =
 
