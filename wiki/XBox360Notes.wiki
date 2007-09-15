@@ -74,6 +74,9 @@ If the service is not present in the device description, the device will still s
 </service>
 }}}
 
+See also:
+  * [http://download.microsoft.com/download/6/5/d/65d7bd40-8b73-4b7c-a3ca-da04f2535421/Building_a_Network_Device_Compatible_with_WMC.doc Building_a_Network_Device_Compatible_with_WMC.doc] - Released by Microsoft, this service is described in Appendex B.
+  * [http://download.microsoft.com/download/6/5/d/65d7bd40-8b73-4b7c-a3ca-da04f2535421/Device_UI_Design_Recommendations.doc Device_UI_Design_Recommendations.doc] - This server is talked about in the first couple of sections.
 = Browsing and Searching =
 
 For the most part, the XBox uses typical browsing and searching as described by the official UPnP Content Directory documentation except for a few minor notes.
@@ -120,3 +123,5 @@ For the most part, the XBox uses typical browsing and searching as described by 
 
 
 
+ 
+ 
