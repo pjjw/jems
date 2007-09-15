@@ -61,7 +61,7 @@ It is unsure at this time whether or not the XBox make assumptions depending on 
 
 == [X_MS_MediaReceiverRegistrar X_MS_MediaReceiverRegistrar] Service ==
 
-While this service is undocumented (may not be the case for [http://www.playsforsure.com/ PlaysForSure] license holders) it is required to a certain extent. It must be listed, however all requests to the service can be safely denied and the description can be empty or even blank. The XBox will periodically make queries to the non-existent service but never actually complain about it not working.
+This service is required to a certain extent. It must be listed, however all requests to the service can be safely denied and the description can be empty or even blank. The XBox will periodically make queries to the non-existent service, but never actually complain about it not working.
 If the service is not present in the device description, the device will still show up, however upon connection, it will timeout and complain about network connectivity problems, or something equally generic.
 
 *Example [X_MS_MediaReceiverRegistrar X_MS_MediaReceiverRegistrar] Service Definition*
@@ -123,5 +123,6 @@ For the most part, the XBox uses typical browsing and searching as described by 
 
 
 
+ 
  
  
