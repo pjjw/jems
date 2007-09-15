@@ -12,7 +12,7 @@ This list shows the devices that I have access to, and seem to work well with JE
 === DMAP (DAAP & DPAP) ===
   * [http://amarok.kde.org/ Amarok] - Works.
   * [http://openbossa.indt.org/canola/ Canola] - Works.
-  * [http://www.apple.com/itunes/ iTunes] - Music & iTunes Supported video works great! No video transcoding support yet.
+  * [http://www.apple.com/itunes/ iTunes] - Music & iTunes supported video works. No video transcoding support yet.
 
 === UPnP ===
   * [http://openbossa.indt.org/canola/ Canola] - Works.
@@ -38,3 +38,4 @@ This list includes devices that I have access to, but don't currently work yet.
 This list includes devices that I don't have access to, but have been told work to varying degrees. 
 
   * _None yet_
+ 
