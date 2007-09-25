@@ -25,6 +25,9 @@ public class MemoryStorageModule implements StorageModule {
 
 	private int updating = 0;
 	private int changes = 0;
+	private int microUpdateThreshold = MICRO_UPDATE_DEFAULT_THRESHOLD;
+	
+	private final static int MICRO_UPDATE_DEFAULT_THRESHOLD = 1000;
 
 	public void hookMediaUpdate(MediaUpdateHook hook) {
 		hooks.add(hook);
@@ -44,7 +47,8 @@ public class MemoryStorageModule implements StorageModule {
 	}
 
 	private synchronized void midUpdate() {
-		if (changes > 1000) {
+		if (changes > microUpdateThreshold) {
+			microUpdateThreshold *= 2;
 			JemServer.getInstance().addLog("Announcing media micro-update...");
 			for (MediaUpdateHook hook: hooks)
 				hook.mediaChanged();
@@ -53,6 +57,8 @@ public class MemoryStorageModule implements StorageModule {
 	}
 
 	public synchronized void startUpdate() {
+		if (updating == 0)
+			microUpdateThreshold = MICRO_UPDATE_DEFAULT_THRESHOLD;
 		updating++;
 	}
 

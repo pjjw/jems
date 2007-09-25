@@ -15,4 +15,8 @@ public class Metadata extends Pair<MetadataType, String> {
 	public String getValue() {
 		return getB();
 	}
+	
+	public String toString() {
+		return getType() + "=" + getValue();
+	}
 }
