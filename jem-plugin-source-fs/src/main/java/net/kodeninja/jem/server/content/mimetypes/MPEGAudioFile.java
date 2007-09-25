@@ -364,14 +364,14 @@ public class MPEGAudioFile extends AudioFile {
 					is.read();
 
 					bytePos += 2;
-					if ((major >= 3) && (major <= 4)) {
+					if ((major >= 2) && (major <= 4)) {
 						boolean useSafeSync = (major == 4);
 						try {
 							// Finish reading the header
 							int startPos = bytePos - 3;
 							int flags = is.read();
 
-							// Use safe sync for both version 3 and 4 for main header
+							// Use safe sync for all versions for main header
 							int totalSize, size = readID3v2Int(is, true);
 							bytePos += 5;
 
@@ -387,7 +387,12 @@ public class MPEGAudioFile extends AudioFile {
 
 							// Frame tags
 							while (bytePos + 8 < startPos + totalSize) {
-								byte[] tagName = new byte[4];
+								byte[] tagName;
+								if (major == 2)
+									tagName = new byte[3];
+								else
+									tagName = new byte[4];
+
 								int tagSize = 0;
 								byte[] tagFlags = new byte[2];
 
@@ -400,16 +405,26 @@ public class MPEGAudioFile extends AudioFile {
 									break;
 								}
 
-								tagSize = readID3v2Int(is, useSafeSync);
-								bytePos += 4;
-								bytePos += is.read(tagFlags);
+								if (major == 2) {
+									byte[] sizeBuffer = new byte[4];
+									sizeBuffer[0] = 0;
+									bytePos += is.read(sizeBuffer, 1, 3);
+									IntBuffer iBuf = (ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN)).asIntBuffer();
+									tagSize = iBuf.get();
+								}
+								else {
+									tagSize = readID3v2Int(is, useSafeSync);
+									bytePos += 4;
+									bytePos += is.read(tagFlags);
+								}
 
 								String tag = new String(tagName);
 
 								// Title tag
 								if ((tagSize > 0)) {
 									if (tag.startsWith("T") &&
-											(tag.equals("TXXX") == false)) {
+											(tag.equals("TXXX") == false) && 
+											(tag.equals("TXX") == false)) {
 										byte[] encoding = { 0 };
 										byte[] bText = new byte[tagSize - 1];
 										bytePos += is.read(encoding);
@@ -418,44 +433,59 @@ public class MPEGAudioFile extends AudioFile {
 										if (encoding[0] < ID3V2_TEXT_ENCODINGS.length) {
 											String text = (new String(bText,
 													ID3V2_TEXT_ENCODINGS[encoding[0]])).trim();
-											if (tag.equals("TIT2"))
-												JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Title, text.trim());
-											else if (tag.equals("TALB"));
-											else if (tag.equals("TRCK"))
+											if (tag.equals("TIT2") || tag.equals("TT2"))
+													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Title, text.trim());
+											else if (tag.equals("TALB") || tag.equals("TAL"))
+												JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Set, text.trim());
+											else if (tag.equals("TRCK") || tag.equals("TRK")) {
+												if (text.indexOf("/") > -1)
+													text = text.substring(0, text.indexOf("/"));
 												JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.SetPosition, text.trim());
-											else if (tag.equals("TPE1")) {
+											}
+											else if (tag.equals("TPE1") || tag.equals("TP1")) {
 												if (text.indexOf("/") > -1)
 													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Artist,
 															text.substring(0, text.indexOf("/")).trim());
 												else
 													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Artist, text.trim());
 											}
-											else if ((tag.equals("TPRO") || (tag.equals("TYER")))) {
+											else if ((tag.equals("TPRO") || (tag.equals("TYER") || tag.equals("TYE")))) {
 												Scanner s = new Scanner(text);
 												if (s.hasNextInt()) {
 													long year = s.nextInt();
-													if (year < 10)
-														year += 2000;
-													else
-														year += 1900;
+													if (year < 100) {
+														if (year < 10)
+															year += 2000;
+														else
+															year += 1900;
+													}
 													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Year, "" + year);
 												}
 											}
-											else if (tag.equals("TCON")) {
+											else if (tag.equals("TCON") || tag.equals("TCO")) {
+												//TODO This needs work
 												try {
+													int pos;
+													if (text.startsWith("(")) {
+														pos = text.indexOf(")");
+														if (pos > -1)
+															text = text.substring(1, pos);
+													}
+
+													pos = text.indexOf('\0');
+													if (pos > 0)
+														text = text.substring(0, pos);
+
 													int g = Integer.parseInt(text);
 													if ((g >= 0) && (g < ID3_GENRE_TAGS.length))
 														JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Genre,
 																ID3_GENRE_TAGS[g]);
 												} catch (NumberFormatException e) {
-													if (text.toUpperCase()
-															.equals("RX"))
+													if (text.equalsIgnoreCase("RX"))
 														text = "Remix";
-													else if (text.toUpperCase()
-															.equals("CR"))
+													else if (text.equalsIgnoreCase("CR"))
 														text = "Cover";
-													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Genre,
-															text.trim());
+													JemServer.getMediaStorage().addMediaMetadata(item, MetadataType.Genre, text.trim());
 												}
 											}
 										}
