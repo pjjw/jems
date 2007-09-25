@@ -14,16 +14,20 @@ public class HTTPTCPSocket implements HTTPSocket {
 	protected Socket socket;
 	protected String serverString;
 
+	private final static long DEFAULT_TIMEOUT = 1000;
+	private boolean timeingOut = false;
+	private long timeout;
+
 	public HTTPTCPSocket(Socket Connection, String serverString) {
 		socket = Connection;
 		this.serverString = serverString;
 	}
 
 	public boolean sendPacket(HTTPPacket<? extends HTTPBody> Packet)
-			throws IOException {
+	throws IOException {
 		if (socket == null)
 			return false;
-		
+
 		if (Packet.allowHeaderUpdate) {
 			if (Packet.getHeader().getType() == HTTPHeader.HeaderType.REQUEST)
 				Packet.getHeader().setParameter("Host", socket.getInetAddress() + ":" + socket.getPort());
@@ -38,7 +42,7 @@ public class HTTPTCPSocket implements HTTPSocket {
 	}
 
 	public boolean getPacket(HTTPPacket<? extends HTTPBody> Packet)
-			throws IOException {
+	throws IOException {
 		if (socket == null)
 			return false;
 		try {
@@ -59,17 +63,25 @@ public class HTTPTCPSocket implements HTTPSocket {
 
 	public void close() {
 		if (socket != null) {
-			Socket tmpSocket = socket;
-			socket = null;
-			try {
-				tmpSocket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			if ((timeingOut) && (System.currentTimeMillis() > timeout)) {
+				Socket tmpSocket = socket;
+				socket = null;
+				try {
+					tmpSocket.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				timeingOut = true;
+				timeout = System.currentTimeMillis() + DEFAULT_TIMEOUT;
 			}
 		}
 	}
 
 	public boolean isOpen() {
+		if ((timeingOut) && (System.currentTimeMillis() > timeout))
+			close();
 		if (socket == null)
 			return false;
 		return socket.isConnected();
