@@ -25,7 +25,7 @@ public class MediaServer implements KNXMLModule, KNServiceModule, UPnPAdvertiseL
 	protected UUID uuid = null;
 	
 	public MediaServer() {
-		UPnP.init(JemServer.getInstance(), JemServer.getScheduler(), false);
+		UPnP.init(JemServer.getInstance(), null, false);
 	}
 	
 	public void xmlInit(Node xmlNode) throws KNModuleInitException {
@@ -60,6 +60,7 @@ public class MediaServer implements KNXMLModule, KNServiceModule, UPnPAdvertiseL
 
 	public void init() throws KNModuleInitException {
 		adOp = UPnP.advertise(mediaServer, this);
+		JemServer.getInstance().addLog(getName() + " [" + friendlyName + "] started.");
 	}
 	
 	public void deinit() throws KNModuleInitException {
