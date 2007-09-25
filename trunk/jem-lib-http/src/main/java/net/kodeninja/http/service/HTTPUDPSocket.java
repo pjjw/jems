@@ -20,21 +20,22 @@ public class HTTPUDPSocket implements HTTPSocket {
 	protected int destPort;
 	protected DatagramPacket udpPacket;
 	protected String serverString;
+	private long lastTick;
+	private long timeout;
 
-	public HTTPUDPSocket(DatagramSocket s, InetAddress dest, int port, String serverString) {
+	public HTTPUDPSocket(DatagramSocket s, InetAddress dest, int port, String serverString, int childTimeout) {
 		socket = s;
 		udpPacket = null;
 		destAddr = dest;
 		destPort = port;
-		this.serverString = serverString; 
+		this.serverString = serverString;
+		lastTick = System.currentTimeMillis();
+		timeout = childTimeout;
 	}
 
-	public HTTPUDPSocket(DatagramSocket s, DatagramPacket p, String serverString) {
-		socket = s;
+	public HTTPUDPSocket(DatagramSocket s, DatagramPacket p, String serverString, int childTimeout) {
+		this(s, p.getAddress(), p.getPort(), serverString, childTimeout);
 		udpPacket = p;
-		destAddr = p.getAddress();
-		destPort = p.getPort();
-		this.serverString = serverString;
 	}
 
 	public void close() {
@@ -42,6 +43,8 @@ public class HTTPUDPSocket implements HTTPSocket {
 	}
 
 	public boolean isOpen() {
+		if (lastTick + timeout < System.currentTimeMillis())
+			close();
 		return (socket != null);
 	}
 
@@ -94,6 +97,7 @@ public class HTTPUDPSocket implements HTTPSocket {
 		Packet.writeToStream(buffer);
 		DatagramPacket p = new DatagramPacket(buffer.toByteArray(), buffer.size(), destAddr, destPort);
 		socket.send(p);
+		lastTick = System.currentTimeMillis();
 
 		return true;
 	}
@@ -112,6 +116,7 @@ public class HTTPUDPSocket implements HTTPSocket {
 		} catch (InvalidHeaderException e) {
 			return false;
 		} 
+		lastTick = System.currentTimeMillis();
 		return true;
 	}
 
@@ -128,7 +133,7 @@ public class HTTPUDPSocket implements HTTPSocket {
 	}
 
 	public int getVersionRevision() {
-		return 1;
+		return 2;
 	}
 
 }

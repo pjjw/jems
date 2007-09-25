@@ -21,7 +21,7 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 	protected Set<InetAddress> multicastGroups = new HashSet<InetAddress>();
 	protected MulticastSocket socket = null;
 	protected int requestTimeout = 100;
-	protected int childTimeout = 10000;
+	protected int childTimeout = 30000;
 	protected Set<PacketHandler> handlers = Collections.synchronizedSet(new LinkedHashSet<PacketHandler>());
 	protected String serverString = null; 
 
@@ -36,7 +36,7 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 			socket.receive(packet);
 
 			return new HTTPChildService(owner.getScheduler(), this,
-					new HTTPUDPSocket(socket, packet, serverString));
+					new HTTPUDPSocket(socket, packet, serverString, childTimeout));
 		} catch (SocketTimeoutException e) {
 			return null;
 		} catch (IOException e) {
@@ -124,7 +124,7 @@ public class HTTPUDPServerSocket implements HTTPServerSocket, KNModule {
 			HTTPPacket<? extends HTTPBody> Packet) throws IOException {
 		if (socket == null)
 			return false;
-		return (new HTTPUDPSocket(socket, addr, port, serverString)).sendPacket(Packet);
+		return (new HTTPUDPSocket(socket, addr, port, serverString, childTimeout)).sendPacket(Packet);
 	}
 
 	public String getName() {
