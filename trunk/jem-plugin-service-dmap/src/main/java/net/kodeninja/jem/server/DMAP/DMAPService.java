@@ -82,6 +82,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 	@Override
 	public void start() {
 		if (isStarted() == false) {
+			super.start();
 			
 			JemServer.getMediaStorage().hookMediaUpdate(this);
 
@@ -134,7 +135,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 				daapDetails.set("Password", "false");
 				daapReg = DNSSD.register(0, 0, getServerName(), "_daap._tcp",
 											(String) null, (String) null,
-											getPort(), daapDetails, this);
+											getBoundPort(), daapDetails, this);
 
 				dpapDetails.set("txtvers", "1");
 				dpapDetails.set("Version", "65537");
@@ -143,7 +144,7 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 				dpapDetails.set("Password", "false");
 				dpapReg = DNSSD.register(0, 0, getServerName(), "_dpap._tcp",
 											(String) null, (String) null,
-											getPort(), dpapDetails, this);
+											getBoundPort(), dpapDetails, this);
 			} catch (DNSSDException e) {
 				e.printStackTrace();
 				daapReg = null;
@@ -156,11 +157,10 @@ public class DMAPService extends HTTPTCPService implements KNRunnableModule,
 				return;
 			}
 
-			super.start();
 			JemServer.getInstance().addLog(
 											getName() + " [" + getServerName()
 													+ "] started. (Port: "
-													+ getPort() + ")");
+													+ getBoundPort() + ")");
 		}
 	}
 
