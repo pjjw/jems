@@ -28,6 +28,7 @@ public class XMLMediaSource2 extends DefaultHandler implements MediaSource, KNSe
 	protected String localName = "";
 	protected MediaItem currentItem = null;
 	protected MetadataType currentType = null;
+	protected int itemCount;
 
 	public String getSourceName() {
 		return "Source Name";
@@ -66,7 +67,9 @@ public class XMLMediaSource2 extends DefaultHandler implements MediaSource, KNSe
 			JemServer.getMediaStorage().startUpdate();
 			XMLReader xr = XMLReaderFactory.createXMLReader();
 			xr.setContentHandler(this);
+			itemCount = 0;
 			xr.parse(new InputSource(new FileReader(listFile)));
+			JemServer.getInstance().addLog("[" + localName + "] Restored " + itemCount + (itemCount == 1 ? " item." : " items."));
 		} catch (SAXException e) {
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
@@ -141,6 +144,7 @@ public class XMLMediaSource2 extends DefaultHandler implements MediaSource, KNSe
 					MimeType itemType = new MimeType(atts.getValue("MimeType"));
 					currentItem = JemServer.getMediaStorage().addNewMedia(itemURI, itemType);
 					currentType = null;
+					itemCount++;
 				} catch (URISyntaxException e) {
 				} catch (MalformedMimeTypeException e) {
 				}
