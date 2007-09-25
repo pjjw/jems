@@ -666,6 +666,15 @@ public final class JemServer extends LoggerCollection {
 			}
 
 			initUI();
+			
+			Runtime.getRuntime().addShutdownHook(
+					new Thread() {
+						public void run() {
+							// Interface called for quit, log and exit program.
+							JemServer.getInstance().deinit();
+						}
+					}
+			);
 		}
 
 		return !errorFlag;
@@ -673,6 +682,10 @@ public final class JemServer extends LoggerCollection {
 
 	private void deinit() {
 		commands.shutdown();
+
+		// Stop all services
+		for (KNRunnableModule service : runnables)
+			service.stop();
 
 		for (KNServiceModule s: services) {
 			try {
@@ -682,11 +695,7 @@ public final class JemServer extends LoggerCollection {
 				e.printStackTrace();
 			}
 		}
-
-		// Stop all services
-		for (KNRunnableModule service : runnables)
-			service.stop();
-
+		
 		addLog("Server Stopped");
 		if (errorFlag == true)
 			addLog("Server exited due to error");
@@ -721,15 +730,6 @@ public final class JemServer extends LoggerCollection {
 		app.addInterface("Built-in Console", localConsole);
 
 		app.initAll();
-
-		Runtime.getRuntime().addShutdownHook(
-				new Thread() {
-					public void run() {
-						// Interface called for quit, log and exit program.
-						JemServer.getInstance().deinit();
-					}
-				}
-		);
 
 		if (app.start() == false)
 			app.addLog("Error occured during startup.");
