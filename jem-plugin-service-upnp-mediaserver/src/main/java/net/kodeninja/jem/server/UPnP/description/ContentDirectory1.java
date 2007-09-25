@@ -28,6 +28,8 @@ import net.kodeninja.util.MimeType;
 
 public class ContentDirectory1 extends Service implements MediaUpdateHook {
 
+	protected String baseURL;
+	
 	protected int updateId = 0;
 
 	protected static final String BrowseFlag_BrowseMetadata = "BrowseMetadata";
@@ -73,6 +75,7 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 		super(owner, new ServiceTypeURN("ContentDirectory", new SSDPVersion(1)));
 
 		www = service.getWWWService();
+		baseURL = www.getURLBase();
 
 		ServiceStateVariableAllowedValueList browseFlagValueList = new ServiceStateVariableAllowedValueList();
 		browseFlagValueList.addValue(BrowseFlag_BrowseMetadata);
@@ -291,7 +294,7 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 	}
 
 	private void addItemTo(MediaItem mi, MediaTreeContainer container) {
-		new MediaTreeItem("i" + container.getId() + "_" + mi.hashCode(), container, mi, www.getURLBase() + www.getItemStreamURI(mi));
+		new MediaTreeItem("i" + container.getId() + "_" + mi.hashCode(), container, mi, baseURL + www.getItemStreamURI(mi));
 	}
 
 	public void mediaChanged() {
