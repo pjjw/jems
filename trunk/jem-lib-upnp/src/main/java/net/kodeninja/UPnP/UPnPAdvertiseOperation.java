@@ -40,6 +40,7 @@ public class UPnPAdvertiseOperation implements UPnPOperation {
 	private LinkedList<USN> usnList = new LinkedList<USN>();
 	private HTTPXMLBody deviceDescription;
 	private Map<ServiceIDURN, HTTPXMLBody> serviceDescriptions = new HashMap<ServiceIDURN, HTTPXMLBody>();
+	private String urlBase;
 
 	private void addServiceDescriptions(Device d, DocumentBuilder builder) {
 
@@ -72,6 +73,8 @@ public class UPnPAdvertiseOperation implements UPnPOperation {
 		this.root = d;
 		this.sock = host.getBroadcastService().getTransport();
 
+		urlBase = UPnP.getURLBase();
+		
 		// Add root device usn to usn list.
 		usnList.add(new USN(root.getUDN(), new RootDeviceURN()));
 
@@ -136,7 +139,7 @@ public class UPnPAdvertiseOperation implements UPnPOperation {
 	}
 
 	private String getDescriptionURL() {
-		return UPnP.getURLBase() + "device/" + root.getUDN().getUUID() + "/description.xml";
+		return urlBase + "device/" + root.getUDN().getUUID() + "/description.xml";
 	}
 
 	public boolean resendAdvertisement() {

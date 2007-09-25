@@ -98,7 +98,7 @@ public final class UPnP extends LoggerCollection {
 		}
 
 		if (sched == null) {
-			notifyService = new HTTPUDPService(SSDP_MULTICAST, 1900, 1);
+			notifyService = new HTTPUDPService(SSDP_MULTICAST, 1900, 3);
 			sched = notifyService.getScheduler();
 		}
 		else
