@@ -3,6 +3,8 @@ package net.kodeninja.jem.server.UPnP.description.internal;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -27,9 +29,9 @@ public class BrowseResult {
 	private int maxCount;
 
 	private String[] filters;
-	//private String[] sorting;
+	private Set<MediaTree> itemList;
 
-	public BrowseResult(int start, int count, String filter, String sort) {
+	public BrowseResult(int start, int count, String filter, String sorting) {
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder builder;
@@ -49,6 +51,10 @@ public class BrowseResult {
 			else
 				filters = filter.toLowerCase().split(",");
 
+			if (sorting == "") // +upnp:album,+upnp:originalTrackNumber,+upnp:artist,+dc:title
+				sorting = "+dc:title";
+			
+			itemList = new TreeSet<MediaTree>(new MediaTreeComparator(sorting));
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		}
@@ -65,52 +71,59 @@ public class BrowseResult {
 	}
 
 	public void add(MediaTree item) {
-		if ((index >= startIndex) && ((index <= startIndex + maxCount) || (maxCount == 0))) {
-			Element element;
-			if (item instanceof MediaTreeContainer) {
-				element = doc.createElement("container");
-				element.setAttribute("childCount", "" + item.getChildernCount());
-			}
-			else {
-				element = doc.createElement("item");
-			}
-
-			element.setAttribute("id", item.getId());
-			element.setAttribute("parentID", (item.getParent() != null ? item.getParent().getId() : "-1"));
-			element.setAttribute("restricted", "1");
-			if (isFieldAllowed("searchable"))
-				element.setAttribute("searchable", "1");
-			root.appendChild(element);
-
-			Element titleElement = doc.createElement("dc:title");
-			element.appendChild(titleElement);
-			titleElement.setTextContent(item.getName());
-
-			for (MediaTreeAttribute attr: item.getAttributes()) {
-				if (attr.getName().equalsIgnoreCase("res") || (attr.getName().equalsIgnoreCase("upnp:class")) || isFieldAllowed(attr.getName())) {
-					Element attrElement = doc.createElement(attr.getName());
-					element.appendChild(attrElement);
-					attrElement.setTextContent(attr.getValue().toString());
-					Iterator<String> it = attr.getAttributeIterator();
-					while (it.hasNext()) {
-						String name = it.next();
-						if ((attr.getName().equals("res") && name.equalsIgnoreCase("protocolInfo")) ||
-								isFieldAllowed(attr.getName() + "@" + name))
-							attrElement.setAttribute(name, attr.getAttributeValue(name).toString());
-					}
-				}
-			}
-
-			count++;
-		}
-		index++;
+		itemList.add(item);
 	}
 
 	public int getCount() {
 		return count;
 	}
 
+	private void build() {
+		for (MediaTree item: itemList) {
+			if ((index >= startIndex) && ((index <= startIndex + maxCount) || (maxCount == 0))) {
+				Element element;
+				if (item instanceof MediaTreeContainer) {
+					element = doc.createElement("container");
+					element.setAttribute("childCount", "" + item.getChildernCount());
+				}
+				else {
+					element = doc.createElement("item");
+				}
+
+				element.setAttribute("id", item.getId());
+				element.setAttribute("parentID", (item.getParent() != null ? item.getParent().getId() : "-1"));
+				element.setAttribute("restricted", "1");
+				if (isFieldAllowed("searchable"))
+					element.setAttribute("searchable", "1");
+				root.appendChild(element);
+
+				Element titleElement = doc.createElement("dc:title");
+				element.appendChild(titleElement);
+				titleElement.setTextContent(item.getName());
+
+				for (MediaTreeAttribute attr: item.getAttributes()) {
+					if (attr.getName().equalsIgnoreCase("res") || (attr.getName().equalsIgnoreCase("upnp:class")) || isFieldAllowed(attr.getName())) {
+						Element attrElement = doc.createElement(attr.getName());
+						element.appendChild(attrElement);
+						attrElement.setTextContent(attr.getValue().toString());
+						Iterator<String> it = attr.getAttributeIterator();
+						while (it.hasNext()) {
+							String name = it.next();
+							if ((attr.getName().equals("res") && name.equalsIgnoreCase("protocolInfo")) ||
+									isFieldAllowed(attr.getName() + "@" + name))
+								attrElement.setAttribute(name, attr.getAttributeValue(name).toString());
+						}
+					}
+				}
+
+				count++;
+			}
+			index++;
+		}
+	}
+
 	public String toString() {
+		build();
 		try {
 			StringWriter w = new StringWriter();
 			StreamResult wr = new StreamResult(w);
