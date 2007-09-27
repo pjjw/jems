@@ -87,7 +87,7 @@ KNRunnableModule, KNServiceModule, MediaSource {
 				}
 				catch (NumberFormatException e) { /* Do nothing */ }
 			}
-			else if (modNode.getNodeName().equals("ignoreUnkown")) {
+			else if (modNode.getNodeName().equals("ignoreUnknown")) {
 				try {
 					String tmpString = modNode.getTextContent();
 					ignoreUnknown = tmpString.equals("1") || tmpString.equalsIgnoreCase("yes") || tmpString.equalsIgnoreCase("true");
