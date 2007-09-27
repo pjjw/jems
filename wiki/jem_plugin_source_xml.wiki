@@ -27,4 +27,4 @@ Figure 1.1 - _Sample module definition_
 *Legend:*
   * *path* (_Optional_) - Specifies what file to store the saved metadata in. If left unspecified, a file named 'JemsMediaList.xml' is created and used in the local directory.
 
-_Note:_ The module class used to be `net.kodeninja.jem.server.content.xml.XMLMediaSource` this is now deprecated, and you should use the newer, faster `net.kodeninja.jem.server.content.xml.XMLMediaSource2`.
+*Note:* The module class used to be `net.kodeninja.jem.server.content.xml.XMLMediaSource` this is now deprecated, and you should use the newer, faster `net.kodeninja.jem.server.content.xml.XMLMediaSource2`.
