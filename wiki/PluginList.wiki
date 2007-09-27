@@ -17,7 +17,7 @@ These plugins deal directly with the media. Common uses include collecting media
 These plugins do the heavy lifting to provide your discovered media to all your devices. See also [SupportedDevices Supported Devices].
 
   * [jem_plugin_service_dmap DMAP Server] - This plugin uses DMAP to advertise media to DAAP (Canola, iTunes, !FrontRow) and DPAP (Canola, iPhoto, !FrontRow) capable clients.
-  * [jem_plugin_service_upnp_mediaserver UPnP MediaServer 1.0] - This plugin uses UPnP to provide data to UPnP aware clients, such as the XBox 360. (SVN Only)
+  * [jem_plugin_service_upnp_mediaserver UPnP MediaServer 1.0] - This plugin uses UPnP to provide data to UPnP aware clients, such as the XBox 360.
   * [jem_plugin_service_www WWW Server] - This plugin provides a basic web interface for interacting with the stored media.
 
 == Interface Plugins ==
