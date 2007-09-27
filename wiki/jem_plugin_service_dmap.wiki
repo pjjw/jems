@@ -3,7 +3,7 @@
 
 = Introduction =
 
-This plugin is used to maintain a persistent media list over runs of the server. Without this plugin, or one like it, the media list is lost and must be rescanned.
+This plugin servers out audio and video to DAAP capable clients (ie. iTunes, FrontRow) and pictures out to DPAP capable clients (ie. iPhoto, FrontRow)
 
 = Configuration =
 
