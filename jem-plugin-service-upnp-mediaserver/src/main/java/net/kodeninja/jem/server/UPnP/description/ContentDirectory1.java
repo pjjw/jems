@@ -262,15 +262,9 @@ public class ContentDirectory1 extends Service implements MediaUpdateHook {
 				String flags = ("" + inArgs.get(Browse_BrowseFlag)).trim();
 				if (flags.equals(BrowseFlag_BrowseDirectChildren)) {
 					Iterator<MediaTree> it = container.getChildern();
-					if (it != null) {
-						int processed = 0;
-						while (it.hasNext()) {
+					if (it != null)
+						while (it.hasNext())
 							result.add(it.next());
-							processed++;
-							if ((count > 0) && (processed > start + count))
-								break;
-						}
-					}
 					total = container.getChildernCount();
 				}
 				else if (flags.equals(BrowseFlag_BrowseMetadata)) {
