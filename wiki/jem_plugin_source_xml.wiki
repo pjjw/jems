@@ -14,7 +14,7 @@ This plugin is set up in the modules section of the JemsConfig.xml file.
 <jems>
   <modules>
     ...
-    <module name="XML Media List" class="net.kodeninja.jem.server.content.xml.XMLMediaSource">
+    <module name="XML Media List" class="net.kodeninja.jem.server.content.xml.XMLMediaSource2">
       <path>medialist.xml</path>
     </module>
     ...
@@ -24,4 +24,7 @@ This plugin is set up in the modules section of the JemsConfig.xml file.
 }}}
 Figure 1.1 - _Sample module definition_
 
-The configuration for this module is simple and only contains one sub tag: `path`. This holds the path to the xml file that stores the media list.
+*Legend:*
+  * path (_Optional_) - Specifies what file to store the saved metadata in. If left unspecified, a file named 'JemsMediaList.xml' is created and used in the local directory.
+
+_Note:_ The module class used to be _net.kodeninja.jem.server.content.xml.XMLMediaSource_ this is now deprecated, and you should use the newer, faster _net.kodeninja.jem.server.content.xml.XMLMediaSource2_.
