@@ -35,7 +35,7 @@ This list includes devices that I have access to, but don't currently work yet.
   * [http://www.microsoft.com/windows/windowsmedia/player/11/default.aspx Windows Media Player 11] - Dies during handshaking.
 
 == Reported ==
-This list includes devices that I don't have access to, but have been told work to varying degrees. 
+This list includes devices that I don't have access to, but has been reported work to varying degrees. 
 
   * _None yet_
  
